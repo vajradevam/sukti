@@ -1,0 +1,763 @@
+# Sūkti lexicon — the single source of truth for keywords, roles, types and
+# diagnostics. This file is data, not code: corrections need no compiler change.
+# Every entry carries a grammatical status; nothing here claims scholar approval.
+
+[meta]
+name = "Sūkti"
+name_itrans = "sUkti"
+cli = "sukti"
+version = "0.1.0"
+script = "itrans"
+file_extensions = ["sukti", "sk"]
+
+# ---------------------------------------------------------------------------
+# Keywords / vocabulary. pos = part of speech and inflection; root = dhātu.
+# status ∈ {validated-by-tool, pending-scholar-review, scholar-approved}.
+# "validated-by-tool" means transliteration/normalisation round-tripped with
+# vidyut-lipi; it does NOT claim grammatical approval by a scholar.
+# ---------------------------------------------------------------------------
+
+[[entry]]
+id = "let"
+canonical = "astu"
+iast = "astu"
+kind = "keyword"
+pos = "imperative active 3sg of √as (as, 'to be')"
+root = "as"
+gloss_en = "let it be; introduce a mutable binding"
+gloss_sa = "bhavatu; parivartanIyaM bandhanaM sthApayati"
+aliases = ["bhavatu"]
+status = "pending-scholar-review"
+rationale = "Classic optative/imperative 'let it be' — a natural existential binding word."
+alternatives = ["bhavatu", "tiShThatu"]
+
+[[entry]]
+id = "const"
+canonical = "nitya"
+iast = "nitya"
+kind = "keyword"
+pos = "adjective/stem (nitya-), neuter nominal used adverbially"
+root = ""
+gloss_en = "constant; introduce an immutable binding"
+gloss_sa = "avikArI; achalaM bandhanam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "nitya 'eternal, constant' directly conveys immutability."
+alternatives = ["achala", "sthira"]
+
+[[entry]]
+id = "fn"
+canonical = "kriyA"
+iast = "kriyā"
+kind = "keyword"
+pos = "feminine a-stem noun (kriyā-)"
+root = "√kRRi"
+gloss_en = "function; a named action, first-class value"
+gloss_sa = "kAryam; kriyAtmakaM mUlyam"
+aliases = ["vidhi"]
+status = "pending-scholar-review"
+rationale = "kriyA 'action/deed' is the traditional term for an operation; √kRRi 'do'."
+alternatives = ["vidhi", "kArya"]
+
+[[entry]]
+id = "return"
+canonical = "phalam"
+iast = "phalam"
+kind = "keyword"
+pos = "neuter a-stem noun, nominative/accusative singular (phala-)"
+root = ""
+gloss_en = "return; yield a result"
+gloss_sa = "phalam; pariNAmaM dadAti"
+aliases = ["phala"]
+status = "pending-scholar-review"
+rationale = "phala 'fruit/result' is the ordinary word for the outcome of an action."
+alternatives = ["pariNAma", "uttara"]
+
+[[entry]]
+id = "if"
+canonical = "yadi"
+iast = "yadi"
+kind = "keyword"
+pos = "indeclinable conjunction"
+root = ""
+gloss_en = "if"
+gloss_sa = "yadi"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Standard Sanskrit conditional conjunction."
+alternatives = ["chet"]
+
+[[entry]]
+id = "elif"
+canonical = "anyathA yadi"
+iast = "anyathā yadi"
+kind = "keyword"
+pos = "indeclinable conjunction phrase"
+root = ""
+gloss_en = "else if"
+gloss_sa = "anyathA yadi"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Compositional phrase: 'otherwise, if'."
+alternatives = ["athavA yadi"]
+
+[[entry]]
+id = "else"
+canonical = "anyathA"
+iast = "anyathā"
+kind = "keyword"
+pos = "indeclinable adverb/conjunction"
+root = ""
+gloss_en = "otherwise; else"
+gloss_sa = "anyathA"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Standard 'otherwise'."
+alternatives = ["atha"]
+
+[[entry]]
+id = "while"
+canonical = "yAvat"
+iast = "yāvat"
+kind = "keyword"
+pos = "indeclinable adverb/conjunction"
+root = ""
+gloss_en = "while; as long as"
+gloss_sa = "yAvat"
+aliases = []
+status = "pending-scholar-review"
+rationale = "yAvat 'as long as' is the natural temporal conditional."
+alternatives = ["tAvat"]
+
+[[entry]]
+id = "for"
+canonical = "pratyekam"
+iast = "pratyekam"
+kind = "keyword"
+pos = "indeclinable adverb (pratyeka- + am)"
+root = ""
+gloss_en = "for each"
+gloss_sa = "pratyekam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "pratyeka 'each, every' is an ordinary distributive term."
+alternatives = ["sarvam"]
+
+[[entry]]
+id = "in"
+canonical = "antaH"
+iast = "antaḥ"
+kind = "keyword"
+pos = "indeclinable adverb / preposition-like (locative sense)"
+root = ""
+gloss_en = "in; over (a collection)"
+gloss_sa = "antaH; madhye"
+aliases = []
+status = "pending-scholar-review"
+rationale = "antaH 'inside' gives the membership sense of for-each."
+alternatives = ["madhye"]
+
+[[entry]]
+id = "break"
+canonical = "virama"
+iast = "virama"
+kind = "keyword"
+pos = "imperative active 2sg of vi + √ram"
+root = "ram"
+gloss_en = "break; stop the enclosing loop"
+gloss_sa = "virama; virAmaM kuru"
+aliases = []
+status = "pending-scholar-review"
+rationale = "vi+√ram 'to cease/stop' yields the imperative 'stop!'."
+alternatives = ["virAmaya"]
+
+[[entry]]
+id = "continue"
+canonical = "anuvarta"
+iast = "anuvarta"
+kind = "keyword"
+pos = "imperative active 2sg of anu + √vRRit"
+root = "vRRit"
+gloss_en = "continue; proceed to the next iteration"
+gloss_sa = "anuvarta; agre pravarta"
+aliases = []
+status = "pending-scholar-review"
+rationale = "anu+√vRRit 'to follow/continue' fits the control-flow sense."
+alternatives = ["pravarta"]
+
+[[entry]]
+id = "true"
+canonical = "satya"
+iast = "satya"
+kind = "keyword"
+pos = "neuter/nominative stem (satya-)"
+root = ""
+gloss_en = "boolean true"
+gloss_sa = "satyam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "satya 'true' is the standard term."
+alternatives = ["vidyamAna"]
+
+[[entry]]
+id = "false"
+canonical = "asatya"
+iast = "asatya"
+kind = "keyword"
+pos = "neuter/nominative stem (asatya-)"
+root = ""
+gloss_en = "boolean false"
+gloss_sa = "asatyam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Direct negation of satya."
+alternatives = ["mithyA"]
+
+[[entry]]
+id = "null"
+canonical = "shUnya"
+iast = "śūnya"
+kind = "keyword"
+pos = "neuter/nominative stem (śūnya-)"
+root = ""
+gloss_en = "the null value"
+gloss_sa = "shUnyam; na kinychit"
+aliases = []
+status = "pending-scholar-review"
+rationale = "shUnya 'zero/void' is the natural null word and is historically the Sanskrit word for zero."
+alternatives = ["nAsti"]
+
+[[entry]]
+id = "and"
+canonical = "cha"
+iast = "ca"
+kind = "keyword"
+pos = "enclitic conjunction"
+root = ""
+gloss_en = "logical and (short-circuit)"
+gloss_sa = "cha; saMyoge"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Standard conjunction 'and'."
+alternatives = ["tathA"]
+
+[[entry]]
+id = "or"
+canonical = "vA"
+iast = "vā"
+kind = "keyword"
+pos = "indeclinable disjunctive conjunction"
+root = ""
+gloss_en = "logical or (short-circuit)"
+gloss_sa = "vA; vikalpe"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Standard disjunctive 'or'."
+alternatives = ["athavA"]
+
+[[entry]]
+id = "not"
+canonical = "na"
+iast = "na"
+kind = "keyword"
+pos = "indeclinable negative particle"
+root = ""
+gloss_en = "logical not"
+gloss_sa = "na; niShedhe"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Standard negator."
+alternatives = ["neti"]
+
+[[entry]]
+id = "try"
+canonical = "yatna"
+iast = "yatna"
+kind = "keyword"
+pos = "masculine a-stem noun (yatna-)"
+root = "√yat"
+gloss_en = "try; a guarded block"
+gloss_sa = "yatnaH; parIkShaNam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "yatna 'effort/attempt' names a guarded attempt."
+alternatives = ["parIkShA"]
+
+[[entry]]
+id = "catch"
+canonical = "doShe"
+iast = "doṣe"
+kind = "keyword"
+pos = "masculine a-stem noun, locative singular (doṣa- → doṣe)"
+root = ""
+gloss_en = "catch; handler for a raised fault"
+gloss_sa = "doShe; doShe sati"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Locative 'in the fault' — idiomatic for an error handler."
+alternatives = ["doSham"]
+
+[[entry]]
+id = "finally"
+canonical = "ante"
+iast = "ante"
+kind = "keyword"
+pos = "masculine a-stem noun, locative singular (anta- → ante)"
+root = ""
+gloss_en = "finally; cleanup clause"
+gloss_sa = "ante; antime"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Locative 'at the end' — a clean name for cleanup."
+alternatives = ["avasAne"]
+
+[[entry]]
+id = "raise"
+canonical = "utthApaya"
+iast = "utthāpaya"
+kind = "keyword"
+pos = "causative imperative active 2sg of ut + √sthA"
+root = "sthA"
+gloss_en = "raise; throw a fault"
+gloss_sa = "utthApaya; doSham utthApaya"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Causative 'cause to rise' fits raising an exception."
+alternatives = ["vyAptaya"]
+
+[[entry]]
+id = "import"
+canonical = "Anaya"
+iast = "ānaya"
+kind = "keyword"
+pos = "imperative active 2sg of A + √nI"
+root = "nI"
+gloss_en = "import a module"
+gloss_sa = "Anaya; AyAtaya"
+aliases = []
+status = "pending-scholar-review"
+rationale = "ā+√nī 'bring near/bring in' — natural for import."
+alternatives = ["AyAtaya"]
+
+[[entry]]
+id = "export"
+canonical = "prakAshaya"
+iast = "prakāśaya"
+kind = "keyword"
+pos = "causative imperative active 2sg of pra + √kAsh"
+root = "kAsh"
+gloss_en = "export a binding"
+gloss_sa = "prakAshaya; bahiH prakaTIkuru"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Causative 'make shine forth' — apt for exporting a public binding."
+alternatives = ["prakaTaya"]
+
+[[entry]]
+id = "class"
+canonical = "varga"
+iast = "varga"
+kind = "keyword"
+pos = "masculine a-stem noun (varga-)"
+root = ""
+gloss_en = "class; a type with methods and fields"
+gloss_sa = "vargaH; sajAtIyAnAM samUhaH"
+aliases = ["jAti"]
+status = "pending-scholar-review"
+rationale = "varga 'group/class' is used in Sanskrit grammar for classes of sounds."
+alternatives = ["jAti", "saMgha"]
+
+[[entry]]
+id = "self"
+canonical = "svayam"
+iast = "svayam"
+kind = "keyword"
+pos = "indeclinable reflexive pronoun"
+root = ""
+gloss_en = "the current instance (self)"
+gloss_sa = "svayam; AtmA"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Standard reflexive 'oneself'."
+alternatives = ["Atman"]
+
+[[entry]]
+id = "super"
+canonical = "mUla"
+iast = "mūla"
+kind = "keyword"
+pos = "neuter a-stem noun (mūla-)"
+root = ""
+gloss_en = "the parent/base class"
+gloss_sa = "mUlam; AdhAravargaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "mUla 'root/base' conveys the superclass."
+alternatives = ["AdhAra"]
+
+[[entry]]
+id = "print"
+canonical = "vada"
+iast = "vada"
+kind = "keyword"
+pos = "imperative active 2sg of √vad"
+root = "vad"
+gloss_en = "print to standard output"
+gloss_sa = "vada; kathaya"
+aliases = ["kathaya"]
+status = "pending-scholar-review"
+rationale = "vada 'say/speak' is the ordinary verb for producing output."
+alternatives = ["kathaya", "brUhi"]
+
+[[entry]]
+id = "readline"
+canonical = "paTha"
+iast = "paṭha"
+kind = "keyword"
+pos = "imperative active 2sg of √paTh"
+root = "paTh"
+gloss_en = "read a line from standard input"
+gloss_sa = "paTha; pAThaM kuru"
+aliases = []
+status = "pending-scholar-review"
+rationale = "paTha 'read/recite' is the natural input verb."
+alternatives = ["gRRihNa"]
+
+[[entry]]
+id = "sutra"
+canonical = "sUtra"
+iast = "sūtra"
+kind = "keyword"
+pos = "neuter a-stem noun (sūtra-)"
+root = ""
+gloss_en = "a rule clause in a guarded rule set"
+gloss_sa = "sUtram; niyamaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "sUtra 'thread/rule' is the traditional name for an aphoristic rule."
+alternatives = ["niyama"]
+
+[[entry]]
+id = "apavada"
+canonical = "apavAda"
+iast = "apavāda"
+kind = "keyword"
+pos = "masculine a-stem noun (apavāda-)"
+root = ""
+gloss_en = "an exception clause (apavāda) that overrides a general rule"
+gloss_sa = "apavAdaH; utsargasya bhedaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian technical term for an exception to a general rule."
+alternatives = ["bheda"]
+
+[[entry]]
+id = "utsarga"
+canonical = "utsarga"
+iast = "utsarga"
+kind = "keyword"
+pos = "masculine a-stem noun (utsarga-)"
+root = ""
+gloss_en = "a general rule (utsarga)"
+gloss_sa = "utsargaH; sAmAnyaniyamaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian technical term for the default/general rule."
+alternatives = ["sAmAnya"]
+
+[[entry]]
+id = "task"
+canonical = "tantu"
+iast = "tantu"
+kind = "keyword"
+pos = "masculine a-stem noun (tantu-)"
+root = ""
+gloss_en = "a lightweight cooperative task (strand)"
+gloss_sa = "tantuH; sUtram; dhAguH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "tantu 'thread/strand' is apt and already means a line of a text."
+alternatives = ["dhAgu", "sUtra"]
+
+# --- kāraka role labels (Layer A) -------------------------------------------
+
+[[entry]]
+id = "role.karta"
+canonical = "kartA"
+iast = "kartā"
+kind = "role"
+pos = "nominative singular of kartṛ- (agent)"
+root = ""
+gloss_en = "agent (who performs the action)"
+gloss_sa = "kartA; kriyAyAH kartA"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian kāraka 'agent'."
+alternatives = []
+
+[[entry]]
+id = "role.karma"
+canonical = "karma"
+iast = "karma"
+kind = "role"
+pos = "neuter nominative/accusative singular of karman- (object)"
+root = ""
+gloss_en = "object / patient (what is acted on)"
+gloss_sa = "karma; kriyAyAH viShayaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian kāraka 'object'."
+alternatives = []
+
+[[entry]]
+id = "role.karana"
+canonical = "karaNa"
+iast = "karaṇa"
+kind = "role"
+pos = "neuter nominative/accusative singular of karaṇa- (instrument)"
+root = ""
+gloss_en = "instrument (by means of)"
+gloss_sa = "karaNam; sAdhanam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian kāraka 'instrument'."
+alternatives = []
+
+[[entry]]
+id = "role.sampradana"
+canonical = "sampradAna"
+iast = "sampradāna"
+kind = "role"
+pos = "neuter nominative/accusative singular of sampradāna- (recipient)"
+root = ""
+gloss_en = "recipient (to whom)"
+gloss_sa = "sampradAnam; pratigrAhakaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian kāraka 'recipient'."
+alternatives = []
+
+[[entry]]
+id = "role.apadana"
+canonical = "apAdAna"
+iast = "apādāna"
+kind = "role"
+pos = "neuter nominative/accusative singular of apādāna- (source)"
+root = ""
+gloss_en = "source (from which)"
+gloss_sa = "apAdAnam; utpattisthAnam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian kāraka 'source/ablation'."
+alternatives = []
+
+[[entry]]
+id = "role.adhikarana"
+canonical = "adhikaraNa"
+iast = "adhikaraṇa"
+kind = "role"
+pos = "neuter nominative/accusative singular of adhikaraṇa- (locus)"
+root = ""
+gloss_en = "locus (where)"
+gloss_sa = "adhikaraNam; sthAnam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The Pāṇinian kāraka 'locus'."
+alternatives = []
+
+[[entry]]
+id = "role.sambandha"
+canonical = "sambandha"
+iast = "sambandha"
+kind = "role"
+pos = "masculine a-stem noun (sambandha-), genitive-style possessor"
+root = ""
+gloss_en = "possessive/genitive role (of)"
+gloss_sa = "sambandhaH; svAmitvam"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Extends the six kārakas with a genitive-style possessor parameter."
+alternatives = ["ShaShThI"]
+
+# --- type names --------------------------------------------------------------
+
+[[entry]]
+id = "type.int"
+canonical = "pUrNA~nka"
+iast = "pūrṇāṅka"
+kind = "type"
+pos = "masculine a-stem compound (pūrṇa + aṅka)"
+root = ""
+gloss_en = "arbitrary-precision integer type"
+gloss_sa = "pUrNA~nkaH; akhaNDitaM vishAlasa~nkhyA"
+aliases = []
+status = "pending-scholar-review"
+rationale = "Modern compound literally 'complete number' — the standard Indic term for integer."
+alternatives = ["a~nka"]
+
+[[entry]]
+id = "type.float"
+canonical = "dashamalava"
+iast = "daśamalava"
+kind = "type"
+pos = "masculine/neuter a-stem compound (daśan + malava)"
+root = ""
+gloss_en = "floating-point decimal type"
+gloss_sa = "dashamalavam; dashAMshasa~nkhyA"
+aliases = []
+status = "pending-scholar-review"
+rationale = "The established Indic term for decimal fractions."
+alternatives = ["dashAMsha"]
+
+[[entry]]
+id = "type.string"
+canonical = "shabda"
+iast = "śabda"
+kind = "type"
+pos = "masculine a-stem noun (śabda-)"
+root = ""
+gloss_en = "string type"
+gloss_sa = "shabdaH; akSharasamUhaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "shabda 'word/sound' is the standard term for a string of text."
+alternatives = ["vAkya"]
+
+[[entry]]
+id = "type.list"
+canonical = "sUchI"
+iast = "sūcī"
+kind = "type"
+pos = "feminine ī-stem noun (sūcī-)"
+root = ""
+gloss_en = "list type"
+gloss_sa = "sUchI; kramabaddhaH samUhaH"
+aliases = []
+status = "pending-scholar-review"
+rationale = "sUchI 'list/index' is an ordinary word for an ordered list."
+alternatives = ["shreNI"]
+
+[[entry]]
+id = "type.map"
+canonical = "kosha"
+iast = "kośa"
+kind = "type"
+pos = "masculine a-stem noun (kośa-)"
+root = ""
+gloss_en = "map/dictionary type"
+gloss_sa = "koshaH; shabdakoShaH"
+aliases = ["koSha"]
+status = "pending-scholar-review"
+rationale = "kosha 'treasury/dictionary' is the natural map word; koSha is a common variant spelling."
+alternatives = ["koSha"]
+
+# --- bilingual diagnostics ----------------------------------------------------
+# Placeholders use {name}; all three languages are required per code.
+
+[[message]]
+code = "E0001"
+en = "unexpected character {char}"
+sa = "apratyAshitaM akSharam {char}"
+hi = "apratyAshita akShara {char}"
+
+[[message]]
+code = "E0002"
+en = "expected {expected} but found {found}"
+sa = "apekShitam {expected}, prAptam {found}"
+hi = "apekShita {expected}, prApta {found}"
+
+[[message]]
+code = "E0003"
+en = "duplicate argument for kāraka role {role}"
+sa = "kArakabhUmikAyai {role} dviH mUlyam"
+hi = "kAraka bhUmikA {role} ke lie do bAra mAna"
+
+[[message]]
+code = "E0004"
+en = "missing required kāraka role {role}"
+sa = "AvashyakI kArakabhUmikA {role} na prAptA"
+hi = "Avashyaka kAraka bhUmikA {role} nahIM milI"
+
+[[message]]
+code = "E0005"
+en = "ambiguous role assignment: {detail}; add an explicit kāraka label"
+sa = "bhUmikAnirNaye aspaShTatA: {detail}; spaShTaM kArakachihnaM yojaya"
+hi = "bhUmikA nirdhAraNa meM aspaShTatA: {detail}; spaShTa kAraka lebala joDaeM"
+
+[[message]]
+code = "E0006"
+en = "two equally specific apavāda clauses {a} and {b} both match"
+sa = "dvau samAnavishiShTAvapavAdau {a} tathA {b} ubhau prayujyete"
+hi = "do samAna vishiShTa apavAda {a} aura {b} donoM lAgU haiM"
+
+[[message]]
+code = "E0007"
+en = "undefined name {name}"
+sa = "aparichitaM nAma {name}"
+hi = "aparichita nAma {name}"
+
+[[message]]
+code = "E0008"
+en = "type mismatch: expected {expected}, found {found}"
+sa = "prakArAsa~ngatiH: apekShitam {expected}, prAptam {found}"
+hi = "prakAra mela nahIM: apekShita {expected}, prApta {found}"
+
+[[message]]
+code = "E0009"
+en = "unhandled fault {name}"
+sa = "anupachAritaH doShaH {name}"
+hi = "asaMbhAlA gayA doSha {name}"
+
+[[message]]
+code = "E0010"
+en = "module import cycle: {cycle}"
+sa = "AyAtachakram: {cycle}"
+hi = "AyAta chakra: {cycle}"
+
+[[message]]
+code = "E0011"
+en = "deadlock detected among tasks {tasks}"
+sa = "tantuShu {tasks} mRRitabandhaH dRRiShTaH"
+hi = "kAryoM {tasks} meM DeDalaOka milA"
+
+[[message]]
+code = "E0012"
+en = "division by zero"
+sa = "shUnyena vibhAjanam"
+hi = "shUnya se vibhAjana"
+
+[[message]]
+code = "E0013"
+en = "index {index} out of range for {container} of length {len}"
+sa = "sUchakA~nkaH {index} {container} sImAyAH bahiH (dairghyam {len})"
+hi = "sUchakAMka {index} kI sImA se bAhara (laMbAI {len})"
+
+[[message]]
+code = "E0014"
+en = "formatter cannot parse this file"
+sa = "rUpakAraH idaM patraM pAThitum na shaknoti"
+hi = "phaOrmaiTara yaha phaAila nahIM paDha sakA"
+
+[[message]]
+code = "E0015"
+en = "identifier {a} is confusable with {b}"
+sa = "pahachAnakartA {a} {b} iva dRRishyate"
+hi = "pahachAnakartA {a}, {b} jaisA dikhatA hai"
+
+[[message]]
+code = "E0016"
+en = "step limit exceeded (--max-steps)"
+sa = "pada-sImA ulla~nghitA (--max-steps)"
+hi = "charaNa sImA pAra (--max-steps)"
+
+[[message]]
+code = "E0017"
+en = "assertion failed"
+sa = "dAvA viphalaH"
+hi = "dAvA viphala"
+
+[[message]]
+code = "W0001"
+en = "clause shadows an earlier ungated general rule; the earlier clause is unreachable"
+sa = "ayaM pakShaH pUrvasya utsargasya chhAyAm AchchhAdayati; pUrvapakShaH aprayojyaH"
+hi = "yaha clause pahale ke binA sharta sAmAnya niyama ko chhAyAdatA hai; pahalA clause aprayojya hai"
