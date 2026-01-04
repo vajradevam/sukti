@@ -1,0 +1,42 @@
+# Executable specification blocks.
+#
+# Every ```sukti-test block below is executed by crates/sukti/tests/spec_tests.rs.
+# Lines beginning with "// =>" are the expected stdout lines. This is a plain
+# text file so the specification stays part of the test suite without needing a
+# separate Markdown document.
+
+```sukti-test
+vada("namaste, vishva!");
+// => namaste, vishva!
+```
+
+```sukti-test
+kriyA kramaguNita(na) {
+    yadi (na <= 1) { phalam 1; }
+    phalam na * kramaguNita(na - 1);
+}
+vada(kramaguNita(5));
+// => 120
+```
+
+```sukti-test
+kriyA preShaya(kartA preShaka, karma patra) { phalam preShaka + ":" + patra; }
+vada(preShaya(karma: "patram", kartA: "rAma"));
+// => rAma:patram
+```
+
+```sukti-test
+sUtra shulka(vastu) { phalam 10; }
+apavAda sUtra shulka(vastu) yadi (vastu == 1) { phalam 0; }
+vada(shulka(1));
+vada(shulka(2));
+// => 0
+// => 10
+```
+
+```sukti-test
+vada(saMskRRita.pratyAhAra("ach"));
+vada(saMskRRita.rUpAntaraNa("namaste", "devanagari", "iast"));
+// => aiuRRiLLieoaiau
+// => namaste
+```
