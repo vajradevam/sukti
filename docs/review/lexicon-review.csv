@@ -1,0 +1,46 @@
+id,canonical_itrans,iast,kind,part_of_speech,root,gloss_en,gloss_sa,aliases,status,rationale,alternatives
+let,astu,astu,keyword,"imperative active 3sg of √as (as, 'to be')",as,let it be; introduce a mutable binding,bhavatu; parivartanIyaM bandhanaM sthApayati,bhavatu,pending-scholar-review,Classic optative/imperative 'let it be' — a natural existential binding word.,bhavatu|tiShThatu
+const,nitya,nitya,keyword,"adjective/stem (nitya-), neuter nominal used adverbially",,constant; introduce an immutable binding,avikArI; achalaM bandhanam,,pending-scholar-review,"nitya 'eternal, constant' directly conveys immutability.",achala|sthira
+fn,kriyA,kriyā,keyword,feminine a-stem noun (kriyā-),√kRRi,"function; a named action, first-class value",kAryam; kriyAtmakaM mUlyam,vidhi,pending-scholar-review,kriyA 'action/deed' is the traditional term for an operation; √kRRi 'do'.,vidhi|kArya
+return,phalam,phalam,keyword,"neuter a-stem noun, nominative/accusative singular (phala-)",,return; yield a result,phalam; pariNAmaM dadAti,phala,pending-scholar-review,phala 'fruit/result' is the ordinary word for the outcome of an action.,pariNAma|uttara
+if,yadi,yadi,keyword,indeclinable conjunction,,if,yadi,,pending-scholar-review,Standard Sanskrit conditional conjunction.,chet
+elif,anyathA yadi,anyathā yadi,keyword,indeclinable conjunction phrase,,else if,anyathA yadi,,pending-scholar-review,"Compositional phrase: 'otherwise, if'.",athavA yadi
+else,anyathA,anyathā,keyword,indeclinable adverb/conjunction,,otherwise; else,anyathA,,pending-scholar-review,Standard 'otherwise'.,atha
+while,yAvat,yāvat,keyword,indeclinable adverb/conjunction,,while; as long as,yAvat,,pending-scholar-review,yAvat 'as long as' is the natural temporal conditional.,tAvat
+for,pratyekam,pratyekam,keyword,indeclinable adverb (pratyeka- + am),,for each,pratyekam,,pending-scholar-review,"pratyeka 'each, every' is an ordinary distributive term.",sarvam
+in,antaH,antaḥ,keyword,indeclinable adverb / preposition-like (locative sense),,in; over (a collection),antaH; madhye,,pending-scholar-review,antaH 'inside' gives the membership sense of for-each.,madhye
+break,virama,virama,keyword,imperative active 2sg of vi + √ram,ram,break; stop the enclosing loop,virama; virAmaM kuru,,pending-scholar-review,vi+√ram 'to cease/stop' yields the imperative 'stop!'.,virAmaya
+continue,anuvarta,anuvarta,keyword,imperative active 2sg of anu + √vRRit,vRRit,continue; proceed to the next iteration,anuvarta; agre pravarta,,pending-scholar-review,anu+√vRRit 'to follow/continue' fits the control-flow sense.,pravarta
+true,satya,satya,keyword,neuter/nominative stem (satya-),,boolean true,satyam,,pending-scholar-review,satya 'true' is the standard term.,vidyamAna
+false,asatya,asatya,keyword,neuter/nominative stem (asatya-),,boolean false,asatyam,,pending-scholar-review,Direct negation of satya.,mithyA
+null,shUnya,śūnya,keyword,neuter/nominative stem (śūnya-),,the null value,shUnyam; na kinychit,,pending-scholar-review,shUnya 'zero/void' is the natural null word and is historically the Sanskrit word for zero.,nAsti
+and,cha,ca,keyword,enclitic conjunction,,logical and (short-circuit),cha; saMyoge,,pending-scholar-review,Standard conjunction 'and'.,tathA
+or,vA,vā,keyword,indeclinable disjunctive conjunction,,logical or (short-circuit),vA; vikalpe,,pending-scholar-review,Standard disjunctive 'or'.,athavA
+not,na,na,keyword,indeclinable negative particle,,logical not,na; niShedhe,,pending-scholar-review,Standard negator.,neti
+try,yatna,yatna,keyword,masculine a-stem noun (yatna-),√yat,try; a guarded block,yatnaH; parIkShaNam,,pending-scholar-review,yatna 'effort/attempt' names a guarded attempt.,parIkShA
+catch,doShe,doṣe,keyword,"masculine a-stem noun, locative singular (doṣa- → doṣe)",,catch; handler for a raised fault,doShe; doShe sati,,pending-scholar-review,Locative 'in the fault' — idiomatic for an error handler.,doSham
+finally,ante,ante,keyword,"masculine a-stem noun, locative singular (anta- → ante)",,finally; cleanup clause,ante; antime,,pending-scholar-review,Locative 'at the end' — a clean name for cleanup.,avasAne
+raise,utthApaya,utthāpaya,keyword,causative imperative active 2sg of ut + √sthA,sthA,raise; throw a fault,utthApaya; doSham utthApaya,,pending-scholar-review,Causative 'cause to rise' fits raising an exception.,vyAptaya
+import,Anaya,ānaya,keyword,imperative active 2sg of A + √nI,nI,import a module,Anaya; AyAtaya,,pending-scholar-review,ā+√nī 'bring near/bring in' — natural for import.,AyAtaya
+export,prakAshaya,prakāśaya,keyword,causative imperative active 2sg of pra + √kAsh,kAsh,export a binding,prakAshaya; bahiH prakaTIkuru,,pending-scholar-review,Causative 'make shine forth' — apt for exporting a public binding.,prakaTaya
+class,varga,varga,keyword,masculine a-stem noun (varga-),,class; a type with methods and fields,vargaH; sajAtIyAnAM samUhaH,jAti,pending-scholar-review,varga 'group/class' is used in Sanskrit grammar for classes of sounds.,jAti|saMgha
+self,svayam,svayam,keyword,indeclinable reflexive pronoun,,the current instance (self),svayam; AtmA,,pending-scholar-review,Standard reflexive 'oneself'.,Atman
+super,mUla,mūla,keyword,neuter a-stem noun (mūla-),,the parent/base class,mUlam; AdhAravargaH,,pending-scholar-review,mUla 'root/base' conveys the superclass.,AdhAra
+print,vada,vada,keyword,imperative active 2sg of √vad,vad,print to standard output,vada; kathaya,kathaya,pending-scholar-review,vada 'say/speak' is the ordinary verb for producing output.,kathaya|brUhi
+readline,paTha,paṭha,keyword,imperative active 2sg of √paTh,paTh,read a line from standard input,paTha; pAThaM kuru,,pending-scholar-review,paTha 'read/recite' is the natural input verb.,gRRihNa
+sutra,sUtra,sūtra,keyword,neuter a-stem noun (sūtra-),,a rule clause in a guarded rule set,sUtram; niyamaH,,pending-scholar-review,sUtra 'thread/rule' is the traditional name for an aphoristic rule.,niyama
+apavada,apavAda,apavāda,keyword,masculine a-stem noun (apavāda-),,an exception clause (apavāda) that overrides a general rule,apavAdaH; utsargasya bhedaH,,pending-scholar-review,The Pāṇinian technical term for an exception to a general rule.,bheda
+utsarga,utsarga,utsarga,keyword,masculine a-stem noun (utsarga-),,a general rule (utsarga),utsargaH; sAmAnyaniyamaH,,pending-scholar-review,The Pāṇinian technical term for the default/general rule.,sAmAnya
+task,tantu,tantu,keyword,masculine a-stem noun (tantu-),,a lightweight cooperative task (strand),tantuH; sUtram; dhAguH,,pending-scholar-review,tantu 'thread/strand' is apt and already means a line of a text.,dhAgu|sUtra
+role.karta,kartA,kartā,role,nominative singular of kartṛ- (agent),,agent (who performs the action),kartA; kriyAyAH kartA,,pending-scholar-review,The Pāṇinian kāraka 'agent'.,
+role.karma,karma,karma,role,neuter nominative/accusative singular of karman- (object),,object / patient (what is acted on),karma; kriyAyAH viShayaH,,pending-scholar-review,The Pāṇinian kāraka 'object'.,
+role.karana,karaNa,karaṇa,role,neuter nominative/accusative singular of karaṇa- (instrument),,instrument (by means of),karaNam; sAdhanam,,pending-scholar-review,The Pāṇinian kāraka 'instrument'.,
+role.sampradana,sampradAna,sampradāna,role,neuter nominative/accusative singular of sampradāna- (recipient),,recipient (to whom),sampradAnam; pratigrAhakaH,,pending-scholar-review,The Pāṇinian kāraka 'recipient'.,
+role.apadana,apAdAna,apādāna,role,neuter nominative/accusative singular of apādāna- (source),,source (from which),apAdAnam; utpattisthAnam,,pending-scholar-review,The Pāṇinian kāraka 'source/ablation'.,
+role.adhikarana,adhikaraNa,adhikaraṇa,role,neuter nominative/accusative singular of adhikaraṇa- (locus),,locus (where),adhikaraNam; sthAnam,,pending-scholar-review,The Pāṇinian kāraka 'locus'.,
+role.sambandha,sambandha,sambandha,role,"masculine a-stem noun (sambandha-), genitive-style possessor",,possessive/genitive role (of),sambandhaH; svAmitvam,,pending-scholar-review,Extends the six kārakas with a genitive-style possessor parameter.,ShaShThI
+type.int,pUrNA~nka,pūrṇāṅka,type,masculine a-stem compound (pūrṇa + aṅka),,arbitrary-precision integer type,pUrNA~nkaH; akhaNDitaM vishAlasa~nkhyA,,pending-scholar-review,Modern compound literally 'complete number' — the standard Indic term for integer.,a~nka
+type.float,dashamalava,daśamalava,type,masculine/neuter a-stem compound (daśan + malava),,floating-point decimal type,dashamalavam; dashAMshasa~nkhyA,,pending-scholar-review,The established Indic term for decimal fractions.,dashAMsha
+type.string,shabda,śabda,type,masculine a-stem noun (śabda-),,string type,shabdaH; akSharasamUhaH,,pending-scholar-review,shabda 'word/sound' is the standard term for a string of text.,vAkya
+type.list,sUchI,sūcī,type,feminine ī-stem noun (sūcī-),,list type,sUchI; kramabaddhaH samUhaH,,pending-scholar-review,sUchI 'list/index' is an ordinary word for an ordered list.,shreNI
+type.map,kosha,kośa,type,masculine a-stem noun (kośa-),,map/dictionary type,koshaH; shabdakoShaH,koSha,pending-scholar-review,kosha 'treasury/dictionary' is the natural map word; koSha is a common variant spelling.,koSha
