@@ -1,0 +1,24 @@
+[package]
+name = "sukti"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Sūkti — an ITRANS-written general-purpose language with Sanskrit grammatical semantics."
+
+[lib]
+name = "sukti"
+path = "src/lib.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+clap.workspace = true
+regex.workspace = true
+num-bigint.workspace = true
+unicode-normalization.workspace = true
+unicode-segmentation.workspace = true
+sukti-sanskrit = { path = "../sanskrit" }
+
+[dev-dependencies]
+proptest.workspace = true
