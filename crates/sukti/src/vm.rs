@@ -512,3 +512,849 @@ impl VM {
         Ok(Flow::Normal)
     }
 
+    // -------------------------------------------------------------- expressions
+
+    fn eval(&mut self, e: &Expr, env: &EnvRef) -> VResult<Value> {
+        self.tick(Some(e.span))?;
+        match &e.kind {
+            ExprKind::Lit(l) => Ok(match l {
+                Literal::Int(i) => Value::Int(i.clone()),
+                Literal::Float(f) => Value::Float(*f),
+                Literal::Str(s) => Value::Str(s.clone()),
+                Literal::Bool(b) => Value::Bool(*b),
+                Literal::Null => Value::Null,
+            }),
+            ExprKind::Var(name) => {
+                // Keyword spellings (vada) and their internal ids (print) both
+                // resolve to the same binding, so source and AST views agree.
+                let direct = env
+                    .borrow()
+                    .get(name)
+                    .or_else(|| self.globals.borrow().get(name));
+                let via_dev = self
+                    .lex
+                    .canonical(name)
+                    .and_then(|d| env.borrow().get(d).or_else(|| self.globals.borrow().get(d)));
+                direct
+                    .or(via_dev)
+                    .ok_or_else(|| self.fault("E0007", &[("name", name.clone())], Some(e.span)))
+            }
+            ExprKind::Template(parts) => {
+                let mut s = String::new();
+                for p in parts {
+                    match p {
+                        StrPart::Text(t) => s.push_str(t),
+                        StrPart::Expr(x, _) => s.push_str(&self.eval(x, env)?.display()),
+                    }
+                }
+                Ok(Value::Str(s))
+            }
+            ExprKind::Unary(op, x) => {
+                let v = self.eval(x, env)?;
+                match op {
+                    UnOp::Neg => match v {
+                        Value::Int(i) => Ok(Value::Int(-i)),
+                        Value::Float(f) => Ok(Value::Float(-f)),
+                        _ => Err(self.fault(
+                            "E0008",
+                            &[
+                                ("expected", "number".into()),
+                                ("found", v.type_name().into()),
+                            ],
+                            Some(e.span),
+                        )),
+                    },
+                    UnOp::Not => Ok(Value::Bool(!v.truthy())),
+                }
+            }
+            ExprKind::Binary(op, l, r) => {
+                if *op == BinOp::And {
+                    let lv = self.eval(l, env)?;
+                    return if lv.truthy() {
+                        self.eval(r, env)
+                    } else {
+                        Ok(lv)
+                    };
+                }
+                if *op == BinOp::Or {
+                    let lv = self.eval(l, env)?;
+                    return if lv.truthy() {
+                        Ok(lv)
+                    } else {
+                        self.eval(r, env)
+                    };
+                }
+                let a = self.eval(l, env)?;
+                let b = self.eval(r, env)?;
+                self.binary(*op, a, b, e.span)
+            }
+            ExprKind::Assign(target, value) => {
+                let v = self.eval(value, env)?;
+                match &target.kind {
+                    ExprKind::Var(name) => {
+                        if !env.borrow_mut().assign(name, v.clone()) {
+                            return Err(self.fault(
+                                "E0007",
+                                &[("name", name.clone())],
+                                Some(e.span),
+                            ));
+                        }
+                    }
+                    ExprKind::Get { obj, name } => {
+                        let o = self.eval(obj, env)?;
+                        match o {
+                            Value::Instance(i) => {
+                                i.borrow_mut().fields.insert(name.clone(), v.clone());
+                            }
+                            _ => {
+                                return Err(self.fault(
+                                    "E0008",
+                                    &[
+                                        ("expected", "object".into()),
+                                        ("found", o.type_name().into()),
+                                    ],
+                                    Some(e.span),
+                                ))
+                            }
+                        }
+                    }
+                    ExprKind::Index { obj, index } => {
+                        let o = self.eval(obj, env)?;
+                        let i = self.eval(index, env)?;
+                        self.index_set(&o, &i, v.clone(), e.span)?;
+                    }
+                    _ => {
+                        return Err(self.fault(
+                            "E0002",
+                            &[
+                                ("expected", "assignable".into()),
+                                ("found", "expression".into()),
+                            ],
+                            Some(e.span),
+                        ))
+                    }
+                }
+                Ok(v)
+            }
+            ExprKind::Call { callee, args } => {
+                let f = self.eval(callee, env)?;
+                let mut vals = Vec::with_capacity(args.len());
+                let mut kinds = Vec::with_capacity(args.len());
+                for a in args {
+                    vals.push(self.eval(&a.expr, env)?);
+                    kinds.push(a.kind.clone());
+                }
+                self.call(f, vals, Some(kinds), e.span)
+            }
+            ExprKind::Get { obj, name } => {
+                let o = self.eval(obj, env)?;
+                self.get(&o, name, e.span)
+            }
+            ExprKind::Index { obj, index } => {
+                let o = self.eval(obj, env)?;
+                let i = self.eval(index, env)?;
+                self.index_get(&o, &i, e.span)
+            }
+            ExprKind::List(v) => {
+                let mut out = Vec::new();
+                for x in v {
+                    out.push(self.eval(x, env)?);
+                }
+                Ok(Value::List(Rc::new(RefCell::new(out))))
+            }
+            ExprKind::Tuple(v) => {
+                let mut out = Vec::new();
+                for x in v {
+                    out.push(self.eval(x, env)?);
+                }
+                Ok(Value::Tuple(Rc::new(out)))
+            }
+            ExprKind::Map(v) => {
+                let mut out = Vec::new();
+                for (k, x) in v {
+                    let key = self.eval(k, env)?;
+                    let val = self.eval(x, env)?;
+                    out.push((key, val));
+                }
+                Ok(Value::Map(Rc::new(RefCell::new(out))))
+            }
+            ExprKind::Range {
+                from,
+                to,
+                inclusive,
+            } => {
+                let av = self.eval(from, env)?;
+                let a = self.as_int(&av, e.span)?;
+                let bv = self.eval(to, env)?;
+                let b = self.as_int(&bv, e.span)?;
+                Ok(Value::Range(
+                    a,
+                    if *inclusive { b + BigInt::from(1) } else { b },
+                ))
+            }
+            ExprKind::Lambda { params, body } => Ok(Value::Func(Rc::new(Func {
+                name: "<kriyA>".into(),
+                params: params.clone(),
+                body: body.clone(),
+                closure: env.clone(),
+                arg_order: Vec::new(),
+                jit_hint: jit_candidate(body),
+            }))),
+            ExprKind::IfExpr { cond, then, els } => {
+                if self.eval(cond, env)?.truthy() {
+                    self.eval(then, env)
+                } else {
+                    self.eval(els, env)
+                }
+            }
+            ExprKind::Block(stmts) => {
+                let child = Env::child(env.clone());
+                match self.exec_block(stmts, &child)? {
+                    Flow::Return(v) => Ok(v),
+                    Flow::Normal => Ok(Value::Null),
+                    _ => Ok(Value::Null),
+                }
+            }
+            ExprKind::Set { obj, name, value } => {
+                let o = self.eval(obj, env)?;
+                let v = self.eval(value, env)?;
+                if let Value::Instance(i) = o {
+                    i.borrow_mut().fields.insert(name.clone(), v.clone());
+                    return Ok(v);
+                }
+                Err(self.fault(
+                    "E0008",
+                    &[("expected", "object".into()), ("found", "?".into())],
+                    Some(e.span),
+                ))
+            }
+        }
+    }
+
+    fn fault(&self, code: &str, args: &[(&str, String)], span: Option<Span>) -> Fault {
+        let mut f = Fault::new(code, self.lex.message(code, &self.lang, args));
+        f.span = span;
+        f
+    }
+
+    fn as_int(&self, v: &Value, span: Span) -> VResult<BigInt> {
+        match v {
+            Value::Int(i) => Ok(i.clone()),
+            _ => Err(self.fault(
+                "E0008",
+                &[
+                    ("expected", "pUrNA~nka".into()),
+                    ("found", v.type_name().into()),
+                ],
+                Some(span),
+            )),
+        }
+    }
+
+    fn binary(&self, op: BinOp, a: Value, b: Value, span: Span) -> VResult<Value> {
+        use BinOp::*;
+        let err = || {
+            self.fault(
+                "E0008",
+                &[
+                    ("expected", "number".into()),
+                    ("found", format!("{} and {}", a.type_name(), b.type_name())),
+                ],
+                Some(span),
+            )
+        };
+        match op {
+            Add => match (&a, &b) {
+                (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x + y)),
+                (Value::Str(x), Value::Str(y)) => Ok(Value::Str(format!("{x}{y}"))),
+                (Value::Str(x), _) => Ok(Value::Str(format!("{}{}", x, b.display()))),
+                (_, Value::Str(y)) => Ok(Value::Str(format!("{}{}", a.display(), y))),
+                _ => {
+                    let x = num(&a).ok_or_else(err)?;
+                    let y = num(&b).ok_or_else(err)?;
+                    Ok(Value::Float(x + y))
+                }
+            },
+            Sub | Mul | Div | Mod | Pow => {
+                if let (Value::Int(x), Value::Int(y)) = (&a, &b) {
+                    return match op {
+                        Sub => Ok(Value::Int(x - y)),
+                        Mul => Ok(Value::Int(x * y)),
+                        Div => {
+                            if *y == BigInt::from(0) {
+                                return Err(self.fault("E0012", &[], Some(span)));
+                            }
+                            Ok(Value::Int(x / y))
+                        }
+                        Mod => {
+                            if *y == BigInt::from(0) {
+                                return Err(self.fault("E0012", &[], Some(span)));
+                            }
+                            Ok(Value::Int(x % y))
+                        }
+                        Pow => {
+                            let e: u32 = y.to_string().parse().map_err(|_| {
+                                self.fault(
+                                    "E0008",
+                                    &[
+                                        ("expected", "nonnegative exponent".into()),
+                                        ("found", y.to_string()),
+                                    ],
+                                    Some(span),
+                                )
+                            })?;
+                            Ok(Value::Int(x.pow(e)))
+                        }
+                        _ => unreachable!(),
+                    };
+                }
+                let x = num(&a).ok_or_else(err)?;
+                let y = num(&b).ok_or_else(err)?;
+                Ok(Value::Float(match op {
+                    Sub => x - y,
+                    Mul => x * y,
+                    Div => {
+                        if y == 0.0 {
+                            return Err(self.fault("E0012", &[], Some(span)));
+                        }
+                        x / y
+                    }
+                    Mod => x % y,
+                    Pow => x.powf(y),
+                    _ => unreachable!(),
+                }))
+            }
+            Eq => Ok(Value::Bool(value_eq(&a, &b))),
+            Ne => Ok(Value::Bool(!value_eq(&a, &b))),
+            Lt | Le | Gt | Ge => {
+                if let (Value::Str(x), Value::Str(y)) = (&a, &b) {
+                    return Ok(Value::Bool(match op {
+                        Lt => x < y,
+                        Le => x <= y,
+                        Gt => x > y,
+                        Ge => x >= y,
+                        _ => false,
+                    }));
+                }
+                let x = num(&a).ok_or_else(err)?;
+                let y = num(&b).ok_or_else(err)?;
+                Ok(Value::Bool(match op {
+                    Lt => x < y,
+                    Le => x <= y,
+                    Gt => x > y,
+                    Ge => x >= y,
+                    _ => false,
+                }))
+            }
+            And | Or => unreachable!(),
+        }
+    }
+
+    fn iterable(&self, v: Value, span: Span) -> VResult<Vec<Value>> {
+        match v {
+            Value::List(l) => Ok(l.borrow().clone()),
+            Value::Tuple(t) => Ok((*t).clone()),
+            Value::Range(a, b) => {
+                let mut out = Vec::new();
+                let mut i = a;
+                while i < b {
+                    out.push(Value::Int(i.clone()));
+                    i += BigInt::from(1);
+                }
+                Ok(out)
+            }
+            Value::Str(s) => Ok(s.chars().map(|c| Value::Str(c.to_string())).collect()),
+            Value::Map(m) => Ok(m.borrow().iter().map(|(k, _)| k.clone()).collect()),
+            _ => Err(self.fault(
+                "E0008",
+                &[("expected", "iterable".into()), ("found", "?".into())],
+                Some(span),
+            )),
+        }
+    }
+
+    fn index_get(&self, o: &Value, i: &Value, span: Span) -> VResult<Value> {
+        match o {
+            Value::List(l) => {
+                let n = self.as_int(i, span)?;
+                let l = l.borrow();
+                let idx = norm_index(&n, l.len()).ok_or_else(|| {
+                    self.fault(
+                        "E0013",
+                        &[
+                            ("index", n.to_string()),
+                            ("container", "sUchI".into()),
+                            ("len", l.len().to_string()),
+                        ],
+                        Some(span),
+                    )
+                })?;
+                Ok(l[idx].clone())
+            }
+            Value::Tuple(t) => {
+                let n = self.as_int(i, span)?;
+                let idx = norm_index(&n, t.len()).ok_or_else(|| {
+                    self.fault(
+                        "E0013",
+                        &[
+                            ("index", n.to_string()),
+                            ("container", "Tupala".into()),
+                            ("len", t.len().to_string()),
+                        ],
+                        Some(span),
+                    )
+                })?;
+                Ok(t[idx].clone())
+            }
+            Value::Map(m) => m
+                .borrow()
+                .iter()
+                .find(|(k, _)| value_eq(k, i))
+                .map(|(_, v)| v.clone())
+                .ok_or_else(|| {
+                    self.fault(
+                        "E0013",
+                        &[
+                            ("index", i.display()),
+                            ("container", "kosha".into()),
+                            ("len", "?".into()),
+                        ],
+                        Some(span),
+                    )
+                }),
+            Value::Str(s) => {
+                let n = self.as_int(i, span)?;
+                let chars: Vec<char> = s.chars().collect();
+                let idx = norm_index(&n, chars.len()).ok_or_else(|| {
+                    self.fault(
+                        "E0013",
+                        &[
+                            ("index", n.to_string()),
+                            ("container", "shabda".into()),
+                            ("len", chars.len().to_string()),
+                        ],
+                        Some(span),
+                    )
+                })?;
+                Ok(Value::Str(chars[idx].to_string()))
+            }
+            _ => Err(self.fault(
+                "E0008",
+                &[
+                    ("expected", "indexable".into()),
+                    ("found", o.type_name().into()),
+                ],
+                Some(span),
+            )),
+        }
+    }
+
+    fn index_set(&self, o: &Value, i: &Value, v: Value, span: Span) -> VResult<()> {
+        match o {
+            Value::List(l) => {
+                let n = self.as_int(i, span)?;
+                let mut l = l.borrow_mut();
+                let idx = norm_index(&n, l.len()).ok_or_else(|| {
+                    self.fault(
+                        "E0013",
+                        &[
+                            ("index", n.to_string()),
+                            ("container", "sUchI".into()),
+                            ("len", l.len().to_string()),
+                        ],
+                        Some(span),
+                    )
+                })?;
+                l[idx] = v;
+                Ok(())
+            }
+            Value::Map(m) => {
+                let mut m = m.borrow_mut();
+                if let Some(p) = m.iter_mut().find(|(k, _)| value_eq(k, i)) {
+                    p.1 = v;
+                } else {
+                    m.push((i.clone(), v));
+                }
+                Ok(())
+            }
+            _ => Err(self.fault(
+                "E0008",
+                &[
+                    ("expected", "indexable".into()),
+                    ("found", o.type_name().into()),
+                ],
+                Some(span),
+            )),
+        }
+    }
+
+    fn get(&mut self, o: &Value, name: &str, span: Span) -> VResult<Value> {
+        match o {
+            Value::Instance(inst) => {
+                let inst = inst.clone();
+                if let Some(v) = inst.borrow().fields.get(name).cloned() {
+                    return Ok(v);
+                }
+                if let Some(m) = inst.borrow().class.find_method(name) {
+                    return Ok(bind_method(&m, o.clone(), &inst.borrow().class));
+                }
+                Err(self.fault("E0007", &[("name", name.into())], Some(span)))
+            }
+            Value::Class(c) => {
+                if let Some(m) = c.find_method(name) {
+                    Ok(m)
+                } else {
+                    Err(self.fault("E0007", &[("name", name.into())], Some(span)))
+                }
+            }
+            Value::Super(c, inst) => {
+                if let Some(m) = c.find_method(name) {
+                    Ok(bind_method(&m, Value::Instance(inst.clone()), c))
+                } else {
+                    Err(self.fault("E0007", &[("name", name.into())], Some(span)))
+                }
+            }
+            Value::Module(m) => m
+                .env
+                .borrow()
+                .get(name)
+                .ok_or_else(|| self.fault("E0007", &[("name", name.into())], Some(span))),
+            Value::List(_)
+            | Value::Str(_)
+            | Value::Map(_)
+            | Value::Int(_)
+            | Value::Float(_)
+            | Value::Tuple(_)
+            | Value::Channel(..) => crate::stdlib::get_method(o.clone(), name)
+                .ok_or_else(|| self.fault("E0007", &[("name", name.into())], Some(span))),
+            _ => Err(self.fault("E0007", &[("name", name.into())], Some(span))),
+        }
+    }
+
+    pub fn call(
+        &mut self,
+        f: Value,
+        args: Vec<Value>,
+        kinds: Option<Vec<ArgKind>>,
+        span: Span,
+    ) -> VResult<Value> {
+        match f {
+            Value::Native(n) => n.call(self, args),
+            Value::Func(fun) => {
+                // Tier-1: only functions whose body is a possible integer JIT
+                // candidate reach the profiler hook. This keeps method- and
+                // list-heavy programs at exactly Tier-0 speed when the JIT is
+                // enabled (the "never slower" clause of the DoD).
+                if fun.jit_hint {
+                    let mut tier = self.tier1.take();
+                    let handled = tier.as_mut().and_then(|t| t.observe(&fun, &args, self));
+                    self.tier1 = tier;
+                    if let Some(r) = handled {
+                        return r;
+                    }
+                }
+                let env = Env::child(fun.closure.clone());
+                let mut pos = 0usize;
+                for (i, p) in fun.params.iter().enumerate() {
+                    let supplied = if !fun.arg_order.is_empty() {
+                        fun.arg_order.get(i).and_then(|j| args.get(*j)).cloned()
+                    } else if let Some(ks) = &kinds {
+                        if matches!(ks.get(i), Some(ArgKind::Omitted)) {
+                            None
+                        } else {
+                            let named = ks.iter().position(|k| match k {
+                                ArgKind::Named(n) => n == &p.name,
+                                ArgKind::Role(r) => p.role == Some(*r),
+                                _ => false,
+                            });
+                            match named {
+                                Some(j) => args.get(j).cloned(),
+                                None => {
+                                    while matches!(ks.get(pos), Some(ArgKind::Omitted)) {
+                                        pos += 1;
+                                    }
+                                    let v = args.get(pos).cloned();
+                                    if v.is_some() {
+                                        pos += 1;
+                                    }
+                                    v
+                                }
+                            }
+                        }
+                    } else {
+                        args.get(i).cloned()
+                    };
+                    let val = match supplied {
+                        Some(v) => v,
+                        None => match &p.default {
+                            Some(d) => self.eval(d, &env)?,
+                            None => {
+                                return Err(self.fault(
+                                    "E0004",
+                                    &[(
+                                        "role",
+                                        p.role
+                                            .map(|r| r.short().to_string())
+                                            .unwrap_or_else(|| p.name.clone()),
+                                    )],
+                                    Some(span),
+                                ))
+                            }
+                        },
+                    };
+                    env.borrow_mut().define(&p.name, val, true);
+                }
+                match self.exec_block(&fun.body, &env)? {
+                    Flow::Return(v) => Ok(v),
+                    Flow::Normal => Ok(Value::Null),
+                    _ => Ok(Value::Null),
+                }
+            }
+            Value::Class(c) => {
+                let inst = Rc::new(RefCell::new(Instance {
+                    class: c.clone(),
+                    fields: HashMap::new(),
+                }));
+                // Copy defaults from the class's field table (stored as a synthetic method name).
+                if let Some(Value::Func(f)) = c.methods.get("__fields__") {
+                    for p in &f.params {
+                        if let Some(d) = &p.default {
+                            let ge = self.globals.clone();
+                            let v = self.eval(d, &ge)?;
+                            inst.borrow_mut().fields.insert(p.name.clone(), v);
+                        }
+                    }
+                }
+                if let Some(init) = c.find_method("nirmANa") {
+                    let bound = bind_method(&init, Value::Instance(inst.clone()), &c);
+                    self.call(bound, args, kinds, span)?;
+                }
+                Ok(Value::Instance(inst))
+            }
+            Value::Sutra(g) => self.call_sutra(&g, args, kinds, span),
+            _ => Err(self.fault(
+                "E0008",
+                &[
+                    ("expected", "kriyA".into()),
+                    ("found", f.type_name().into()),
+                ],
+                Some(span),
+            )),
+        }
+    }
+
+    fn call_sutra(
+        &mut self,
+        g: &Rc<SutraGroup>,
+        args: Vec<Value>,
+        kinds: Option<Vec<ArgKind>>,
+        span: Span,
+    ) -> VResult<Value> {
+        let env = Env::child(g.closure.clone());
+        let mut pos = 0;
+        for (i, p) in g.params.iter().enumerate() {
+            let v = args
+                .get(if kinds.is_some() { pos } else { i })
+                .cloned()
+                .unwrap_or(Value::Null);
+            pos += 1;
+            env.borrow_mut().define(&p.name, v, true);
+        }
+        let mut applicable: Vec<(usize, &CompiledClause)> = Vec::new();
+        for c in &g.clauses {
+            let ok = match &c.guard {
+                None => true,
+                Some(x) => self.eval(x, &env)?.truthy(),
+            };
+            if ok {
+                applicable.push((c.order, c));
+            }
+        }
+        if applicable.is_empty() {
+            return Ok(Value::Null);
+        }
+        // apavāda beats utsarga; among equals, the later clause wins.
+        let best_spec = applicable
+            .iter()
+            .map(|(_, c)| c.specificity)
+            .max()
+            .unwrap_or(0);
+        let apavadas: Vec<_> = applicable
+            .iter()
+            .filter(|(_, c)| c.kind == SutraKind::Apavada && c.specificity == best_spec)
+            .collect();
+        let winner = if !apavadas.is_empty() {
+            if apavadas.len() > 1 {
+                return Err(self.fault(
+                    "E0006",
+                    &[
+                        ("a", format!("clause#{}", apavadas[0].1.order)),
+                        ("b", format!("clause#{}", apavadas[1].1.order)),
+                    ],
+                    Some(span),
+                ));
+            }
+            apavadas[0]
+        } else {
+            applicable.iter().max_by_key(|(o, _)| *o).unwrap()
+        };
+        if self.trace_prakriya {
+            self.output.push_str(&format!(
+                "[prakriyA] sUtra {} → clause#{} ({}) specificity={}\n",
+                g.name,
+                winner.1.order,
+                if winner.1.kind == SutraKind::Apavada {
+                    "apavAda"
+                } else {
+                    "utsarga"
+                },
+                winner.1.specificity
+            ));
+        }
+        match self.exec_block(&winner.1.body, &Env::child(env.clone()))? {
+            Flow::Return(v) => Ok(v),
+            Flow::Normal => Ok(Value::Null),
+            _ => Ok(Value::Null),
+        }
+    }
+
+    // ------------------------------------------------------------ task scheduler
+
+    fn drain_tasks(&mut self) -> VResult<()> {
+        let mut progress = true;
+        while progress {
+            progress = false;
+            let ids: Vec<usize> = self.tasks.iter().enumerate().map(|(i, _)| i).collect();
+            for id in ids {
+                let t = self.tasks[id].clone();
+                if t.borrow().finished || t.borrow().blocked_on.is_some() {
+                    continue;
+                }
+                self.current_task = Some(id);
+                let body = t.borrow().body.clone();
+                let env = t.borrow().env.clone();
+                let res = self.exec_block(&body, &Env::child(env.clone()));
+                match res {
+                    Ok(_) => {
+                        t.borrow_mut().finished = true;
+                        progress = true;
+                    }
+                    Err(f) if f.kind == "E0011" => {
+                        t.borrow_mut().blocked_on = Some(0);
+                    }
+                    Err(f) => return Err(f),
+                }
+            }
+        }
+        let blocked: Vec<String> = self
+            .tasks
+            .iter()
+            .filter(|t| t.borrow().blocked_on.is_some())
+            .map(|t| t.borrow().name.clone())
+            .collect();
+        if !blocked.is_empty() {
+            return Err(self.fault("E0011", &[("tasks", blocked.join(", "))], None));
+        }
+        self.current_task = None;
+        Ok(())
+    }
+}
+
+fn num(v: &Value) -> Option<f64> {
+    match v {
+        Value::Int(i) => i.to_string().parse().ok(),
+        Value::Float(f) => Some(*f),
+        _ => None,
+    }
+}
+
+fn norm_index(n: &BigInt, len: usize) -> Option<usize> {
+    let v: i64 = n.to_string().parse().ok()?;
+    let l = len as i64;
+    let idx = if v < 0 { l + v } else { v };
+    if idx >= 0 && idx < l {
+        Some(idx as usize)
+    } else {
+        None
+    }
+}
+
+fn count_comparisons(e: &Expr) -> usize {
+    match &e.kind {
+        ExprKind::Binary(op, a, b) => {
+            let n = if matches!(
+                op,
+                BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge
+            ) {
+                1
+            } else {
+                0
+            };
+            n + count_comparisons(a) + count_comparisons(b)
+        }
+        ExprKind::Unary(_, a) => count_comparisons(a),
+        _ => 0,
+    }
+}
+
+pub fn bind_method(m: &Value, recv: Value, class: &Rc<Class>) -> Value {
+    match m {
+        Value::Func(f) => {
+            let env = Env::child(f.closure.clone());
+            env.borrow_mut().define("svayam", recv.clone(), false);
+            if let Some(sup) = &class.superclass {
+                env.borrow_mut().define(
+                    "mUla",
+                    Value::Super(
+                        sup.clone(),
+                        match &recv {
+                            Value::Instance(i) => i.clone(),
+                            _ => unreachable!(),
+                        },
+                    ),
+                    false,
+                );
+            }
+            Value::Func(Rc::new(Func {
+                name: f.name.clone(),
+                params: f.params.clone(),
+                body: f.body.clone(),
+                closure: env,
+                arg_order: f.arg_order.clone(),
+                jit_hint: f.jit_hint,
+            }))
+        }
+        _ => m.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn run(src: &str) -> (String, Option<Fault>) {
+        let mut vm = VM::new("en");
+        crate::stdlib::register(&mut vm);
+        let s = crate::diag::Source::new("t", src);
+        let mut rep = crate::diag::Reporter::new("en");
+        let toks = Lexer::new(&s, &vm.lex, &mut rep).tokenize();
+        let mut p = Parser::new(&s, &vm.lex, &mut rep, toks);
+        let st = p.parse_program();
+        assert!(!rep.has_errors(), "{}", rep.render(&s));
+        let r = vm.run(&st);
+        (vm.output, r.err())
+    }
+    #[test]
+    fn hello_and_arithmetic() {
+        let (o, e) = run("vada(\"namaste, vishva!\"); vada(2 + 3);");
+        assert!(e.is_none(), "{:?}", e);
+        assert_eq!(o, "namaste, vishva!\n5\n");
+    }
+    #[test]
+    fn factorial() {
+        let (o, e) = run(
+            "kriyA kramaguNita(na) { yadi (na <= 1) { phalam 1; } phalam na * kramaguNita(na - 1); } vada(kramaguNita(5));",
+        );
+        assert!(e.is_none(), "{:?}", e);
+        assert_eq!(o, "120\n");
+    }
+}
