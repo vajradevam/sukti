@@ -1,0 +1,17 @@
+[package]
+name = "sukti-jit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Tier-1 Cranelift JIT for Sūkti's integer subset."
+
+[dependencies]
+sukti = { path = "../sukti" }
+num-bigint.workspace = true
+cranelift-codegen.workspace = true
+cranelift-frontend.workspace = true
+cranelift-jit.workspace = true
+cranelift-module.workspace = true
+cranelift-native.workspace = true
+serde.workspace = true
+serde_json.workspace = true
