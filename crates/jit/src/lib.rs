@@ -578,3 +578,63 @@ impl Jit {
     }
 
     /// OSR: build a native kernel for a hot loop. The kernel receives the
+    /// loop-carried integer variables in the payload slots, runs the loop to
+    /// completion, and writes the final values to the out array.
+    fn compile_loop_kernel(
+        &mut self,
+        id: u64,
+        cond: &Expr,
+        body: &[Stmt],
+        env: &EnvRef,
+    ) -> Result<(), String> {
+        if body.iter().any(|s| matches!(s.kind, StmtKind::Return(_))) {
+            return Err("loop kernel rejects early return".into());
+        }
+        let mut names = Vec::new();
+        let mut seen = HashSet::new();
+        collect_vars(cond, &mut names, &mut seen);
+        for s in body {
+            collect_vars_stmt(s, &mut names, &mut seen);
+        }
+        names.retain(|n| matches!(env.borrow().get(n), Some(Value::Int(_))));
+        if names.is_empty() || names.len() > SLOTS {
+            return Err(format!("loop kernel needs 1..={SLOTS} carried int vars"));
+        }
+        let kernel_name = format!("__osr_{id}");
+        if self.osr_kernels.contains_key(&id) {
+            return Ok(());
+        }
+        let params: Vec<Param> = names
+            .iter()
+            .map(|n| Param {
+                name: n.clone(),
+                role: None,
+                ty: None,
+                default: None,
+                span: cond.span,
+            })
+            .collect();
+        let kernel = Func {
+            name: kernel_name.clone(),
+            params,
+            body: vec![Stmt {
+                kind: StmtKind::While {
+                    cond: cond.clone(),
+                    body: body.to_vec(),
+                },
+                span: cond.span,
+            }],
+            closure: env.clone(),
+            arg_order: Vec::new(),
+            jit_hint: true,
+        };
+        let fid = self
+            .module
+            .declare_function(&kernel_name, Linkage::Export, &self.signature(names.len()))
+            .map_err(|e| e.to_string())?;
+        let sig = self.signature(names.len());
+        let mut fctx = cranelift_frontend::FunctionBuilderContext::new();
+        let mut func = cranelift_codegen::ir::Function::with_name_signature(
+            UserFuncName::user(0, fid.as_u32()),
+            sig,
+        );
