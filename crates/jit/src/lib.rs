@@ -638,3 +638,63 @@ impl Jit {
             UserFuncName::user(0, fid.as_u32()),
             sig,
         );
+        let mut b = FunctionBuilder::new(&mut func, &mut fctx);
+        let entry = b.create_block();
+        b.switch_to_block(entry);
+        let yield_ref = self.module.declare_func_in_func(self.yield_id, b.func);
+        let sites = {
+            let mut cx = Cx {
+                b: &mut b,
+                module: &mut self.module,
+                funcs: &self.funcs,
+                vars: HashMap::new(),
+                terminated: false,
+                loops: Vec::new(),
+                ctx: None,
+                out: None,
+                sites: Vec::new(),
+                next_site: 1,
+                yield_ref,
+                trace: self.trace,
+            };
+            cx.build_with_out(&kernel, &names)?;
+            cx.sites
+        };
+        let mut cctx = cranelift_codegen::Context::for_function(func);
+        self.module
+            .define_function(fid, &mut cctx)
+            .map_err(|e| e.to_string())?;
+        self.module.clear_context(&mut cctx);
+        self.module
+            .finalize_definitions()
+            .map_err(|e| e.to_string())?;
+        self.deopt_sites.insert(kernel_name.clone(), sites);
+        self.funcs.insert(kernel_name, (fid, names.len()));
+        self.osr_kernels.insert(id, (fid, names.clone()));
+        self.stats.osr_compiled += 1;
+        if self.trace {
+            eprintln!("[jit] OSR kernel {id} compiled over {:?}", names);
+        }
+        Ok(())
+    }
+
+    fn run_loop_kernel(&mut self, id: u64, env: &EnvRef) -> Option<VResult<()>> {
+        let (fid, names) = self.osr_kernels.get(&id)?.clone();
+        let mut slots = [0i64; SLOTS];
+        for (i, n) in names.iter().enumerate() {
+            let Value::Int(bi) = env.borrow().get(n)? else {
+                return None;
+            };
+            let Ok(v) = bi.to_string().parse::<i128>() else {
+                return None;
+            };
+            if v < I64_MIN || v > I64_MAX {
+                return None;
+            }
+            slots[i] = v as i64;
+        }
+        let mut out = [0i64; SLOTS];
+        let mut ctx = DeoptContext::default();
+        let _ = unsafe { self.call_native(fid, &slots, out.as_mut_ptr(), &mut ctx) };
+        if ctx.status != STATUS_OK {
+            // Overflow, guard or yield: fall back to the interpreter with the
