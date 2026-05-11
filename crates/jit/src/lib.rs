@@ -698,3 +698,102 @@ impl Jit {
         let _ = unsafe { self.call_native(fid, &slots, out.as_mut_ptr(), &mut ctx) };
         if ctx.status != STATUS_OK {
             // Overflow, guard or yield: fall back to the interpreter with the
+            // variables exactly as they were at the OSR point.
+            let kname = format!("__osr_{id}");
+            self.note_deopt(&kname, ctx.status, ctx.site);
+            return None;
+        }
+        for (i, n) in names.iter().enumerate() {
+            env.borrow_mut()
+                .define(n, Value::Int(BigInt::from(out[i])), true);
+        }
+        self.stats.osr_runs += 1;
+        Some(Ok(()))
+    }
+
+    fn observe_loop_impl(&mut self, site: &LoopSite<'_>, env: &EnvRef) -> Option<VResult<()>> {
+        self.stats.osr_backedges += 1;
+        if self.osr_kernels.contains_key(&site.id) {
+            return self.run_loop_kernel(site.id, env);
+        }
+        if self.bad_loops.contains(&site.id) {
+            return None;
+        }
+        let hot = self.loop_hot.entry(site.id).or_insert(0);
+        *hot += 1;
+        if *hot < self.osr_threshold {
+            return None;
+        }
+        match self.compile_loop_kernel(site.id, site.cond, site.body, env) {
+            Ok(()) => self.run_loop_kernel(site.id, env),
+            Err(e) => {
+                self.stats.osr_rejected += 1;
+                self.bad_loops.insert(site.id);
+                if self.trace {
+                    eprintln!("[jit] OSR rejected loop {}: {e}", site.id);
+                }
+                None
+            }
+        }
+    }
+}
+
+impl Tier1 for Jit {
+    fn observe(&mut self, f: &Func, args: &[Value], vm: &mut VM) -> Option<VResult<Value>> {
+        self.observe_impl(f, args, vm)
+    }
+    fn observe_loop(
+        &mut self,
+        site: &LoopSite<'_>,
+        env: &EnvRef,
+        _vm: &mut VM,
+    ) -> Option<VResult<()>> {
+        self.observe_loop_impl(site, env)
+    }
+    fn dump(&self) -> String {
+        let mut s = String::from("=== Tier 1 (Cranelift native) ===\n");
+        for (n, (_, a)) in &self.funcs {
+            if let Some(sites) = self.deopt_sites.get(n) {
+                s.push_str(&format!("compiled {n}/{a} ({} deopt sites)\n", sites.len()));
+                for site in sites {
+                    s.push_str(&format!(
+                        "  deopt-site {} {} — {}\n",
+                        site.id, site.reason, site.detail
+                    ));
+                }
+            } else {
+                s.push_str(&format!("compiled {n}/{a}\n"));
+            }
+        }
+        for n in &self.bad {
+            s.push_str(&format!("blacklisted {n}\n"));
+        }
+        for (id, (_, names)) in &self.osr_kernels {
+            s.push_str(&format!("osr-kernel #{id} over {:?}\n", names));
+        }
+        s
+    }
+    fn stats(&self) -> String {
+        format!(
+            "calls={} compiled={} native_calls={} deopts={} deopt_overflow={} deopt_guard={} deopt_yield={} blacklisted={} repeated_deopt_blacklist={} icache_hits={} icache_misses={} code_cache_hits={} osr_compiled={} osr_runs={} osr_backedges={} osr_rejected={}",
+            self.stats.calls,
+            self.stats.compiled,
+            self.stats.native_calls,
+            self.stats.deopts,
+            self.stats.deopt_overflow,
+            self.stats.deopt_guard,
+            self.stats.deopt_yield,
+            self.stats.blacklisted,
+            self.stats.repeated_deopt_blacklist,
+            self.stats.icache_hits,
+            self.stats.icache_misses,
+            self.stats.code_cache_hits,
+            self.stats.osr_compiled,
+            self.stats.osr_runs,
+            self.stats.osr_backedges,
+            self.stats.osr_rejected,
+        )
+    }
+}
+
+// --------------------------------------------------------------- AST helpers
