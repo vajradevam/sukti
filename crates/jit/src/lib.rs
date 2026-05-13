@@ -797,3 +797,112 @@ impl Tier1 for Jit {
 }
 
 // --------------------------------------------------------------- AST helpers
+
+fn calls_in(stmts: &[Stmt]) -> HashSet<String> {
+    let mut out = HashSet::new();
+    fn walk_expr(e: &Expr, out: &mut HashSet<String>) {
+        match &e.kind {
+            ExprKind::Call { callee, args } => {
+                if let ExprKind::Var(n) = &callee.kind {
+                    out.insert(n.clone());
+                }
+                for a in args {
+                    walk_expr(&a.expr, out);
+                }
+            }
+            ExprKind::Binary(_, a, b) => {
+                walk_expr(a, out);
+                walk_expr(b, out);
+            }
+            ExprKind::Unary(_, a) | ExprKind::Assign(_, a) => walk_expr(a, out),
+            _ => {}
+        }
+    }
+    fn walk_block(b: &[Stmt], out: &mut HashSet<String>) {
+        for s in b {
+            match &s.kind {
+                StmtKind::Expr(e) | StmtKind::Return(Some(e)) => walk_expr(e, out),
+                StmtKind::Let { init, .. } => {
+                    if let Some(e) = init {
+                        walk_expr(e, out);
+                    }
+                }
+                StmtKind::If { cond, then, els } => {
+                    walk_expr(cond, out);
+                    walk_block(then, out);
+                    walk_block(els, out);
+                }
+                StmtKind::While { cond, body } => {
+                    walk_expr(cond, out);
+                    walk_block(body, out);
+                }
+                StmtKind::For { iter, body, .. } => {
+                    walk_expr(iter, out);
+                    walk_block(body, out);
+                }
+                _ => {}
+            }
+        }
+    }
+    walk_block(stmts, &mut out);
+    out
+}
+
+fn collect_vars(e: &Expr, out: &mut Vec<String>, seen: &mut HashSet<String>) {
+    match &e.kind {
+        ExprKind::Var(n) => {
+            if seen.insert(n.clone()) {
+                out.push(n.clone());
+            }
+        }
+        ExprKind::Binary(_, a, b) => {
+            collect_vars(a, out, seen);
+            collect_vars(b, out, seen);
+        }
+        ExprKind::Unary(_, a) => collect_vars(a, out, seen),
+        ExprKind::Assign(a, b) => {
+            collect_vars(a, out, seen);
+            collect_vars(b, out, seen);
+        }
+        ExprKind::Call { callee, args } => {
+            collect_vars(callee, out, seen);
+            for a in args {
+                collect_vars(&a.expr, out, seen);
+            }
+        }
+        _ => {}
+    }
+}
+fn collect_vars_stmt(s: &Stmt, out: &mut Vec<String>, seen: &mut HashSet<String>) {
+    match &s.kind {
+        StmtKind::Expr(e) | StmtKind::Return(Some(e)) | StmtKind::Raise(e) => {
+            collect_vars(e, out, seen)
+        }
+        StmtKind::Let { init, .. } => {
+            if let Some(e) = init {
+                collect_vars(e, out, seen);
+            }
+        }
+        StmtKind::If { cond, then, els } => {
+            collect_vars(cond, out, seen);
+            for x in then.iter().chain(els) {
+                collect_vars_stmt(x, out, seen);
+            }
+        }
+        StmtKind::While { cond, body } => {
+            collect_vars(cond, out, seen);
+            for x in body {
+                collect_vars_stmt(x, out, seen);
+            }
+        }
+        StmtKind::For { iter, body, .. } => {
+            collect_vars(iter, out, seen);
+            for x in body {
+                collect_vars_stmt(x, out, seen);
+            }
+        }
+        _ => {}
+    }
+}
+
+// ------------------------------------------------------------------- builder
