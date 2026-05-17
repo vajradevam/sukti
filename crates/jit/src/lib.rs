@@ -906,3 +906,245 @@ fn collect_vars_stmt(s: &Stmt, out: &mut Vec<String>, seen: &mut HashSet<String>
 }
 
 // ------------------------------------------------------------------- builder
+
+struct Cx<'a> {
+    b: &'a mut FunctionBuilder<'a>,
+    module: &'a mut JITModule,
+    funcs: &'a HashMap<String, (FuncId, usize)>,
+    vars: HashMap<String, Variable>,
+    terminated: bool,
+    loops: Vec<(Block, Block)>, // (exit, header)
+    ctx: Option<ClifValue>,
+    out: Option<(ClifValue, Vec<String>)>,
+    sites: Vec<DeoptSite>,
+    next_site: u64,
+    yield_ref: FuncRef,
+    trace: bool,
+}
+
+impl<'a> Cx<'a> {
+    fn iconst(&mut self, v: i64) -> ClifValue {
+        self.b.ins().iconst(types::I64, v)
+    }
+    fn cmp(&mut self, cc: IntCC, a: ClifValue, b: ClifValue) -> ClifValue {
+        let c = self.b.ins().icmp(cc, a, b);
+        self.b.ins().uextend(types::I64, c)
+    }
+
+    /// Branch to a deopt stub that records `reason` and `site` and returns.
+    fn ctx(&self) -> ClifValue {
+        self.ctx
+            .expect("deopt context must be initialized in build")
+    }
+    fn guard(&mut self, cond: ClifValue, reason: i64, detail: &str) {
+        let ctx = self.ctx();
+        let id = self.next_site;
+        if self.trace && reason == REASON_OVERFLOW {
+            eprintln!("[jit] guard site {id}: {detail}");
+        }
+        self.next_site += 1;
+        self.sites.push(DeoptSite {
+            id,
+            reason: match reason {
+                REASON_OVERFLOW => "overflow",
+                REASON_GUARD => "guard",
+                REASON_YIELD => "yield",
+                _ => "unknown",
+            },
+            detail: detail.to_string(),
+        });
+        let deopt = self.b.create_block();
+        let ok = self.b.create_block();
+        self.b.ins().brif(cond, deopt, &[], ok, &[]);
+        self.b.switch_to_block(deopt);
+        let r = self.iconst(reason);
+        let s = self.iconst(id as i64);
+        let z = self.iconst(0);
+        self.b.ins().store(MemFlagsData::trusted(), r, ctx, 0);
+        self.b.ins().store(MemFlagsData::trusted(), s, ctx, 8);
+        self.b.ins().return_(&[z]);
+        self.b.switch_to_block(ok);
+    }
+
+    /// Deopt when `v` lies outside `[lo, hi]`.
+    fn range_guard(&mut self, v: ClifValue, lo: i64, hi: i64, detail: &str) {
+        let lo_v = self.iconst(lo);
+        let hi_v = self.iconst(hi);
+        let a = self.cmp(IntCC::SignedLessThan, v, lo_v);
+        let b = self.cmp(IntCC::SignedGreaterThan, v, hi_v);
+        let bad = self.b.ins().bor(a, b);
+        self.guard(bad, REASON_OVERFLOW, detail);
+    }
+
+    /// Poll the host yield switch at a loop backedge.
+    fn yield_poll(&mut self) {
+        let ctx = self.ctx();
+        let p = self.b.ins().call(self.yield_ref, &[ctx]);
+        let r = self.b.inst_results(p)[0];
+        self.guard(r, REASON_YIELD, "host yield at compiled loop backedge");
+    }
+
+    fn var(&mut self, name: &str) -> Variable {
+        if let Some(v) = self.vars.get(name) {
+            return *v;
+        }
+        let v = self.b.declare_var(types::I64);
+        self.vars.insert(name.to_string(), v);
+        v
+    }
+
+    fn store_out(&mut self) {
+        let Some((ptr, names)) = self.out.clone() else {
+            return;
+        };
+        for (i, n) in names.iter().enumerate() {
+            let var = self.var(n);
+            let v = self.b.use_var(var);
+            self.b
+                .ins()
+                .store(MemFlagsData::trusted(), v, ptr, (i * 8) as i32);
+        }
+    }
+
+    fn build(&mut self, f: &Func) -> Result<(), String> {
+        let entry = self.b.current_block().unwrap();
+        for _ in 0..PARAM_COUNT {
+            self.b.append_block_param(entry, types::I64);
+        }
+        let params: Vec<ClifValue> = self.b.block_params(entry).to_vec();
+        self.ctx = Some(params[CTX_SLOT]);
+        for (i, p) in f.params.iter().enumerate() {
+            let var = self.var(&p.name);
+            self.b.def_var(var, params[i]);
+        }
+        self.compile_block(&f.body)?;
+        if !self.terminated {
+            self.store_out();
+            let z = self.iconst(0);
+            self.b.ins().return_(&[z]);
+            self.terminated = true;
+        }
+        self.b.seal_all_blocks();
+        Ok(())
+    }
+
+    fn build_with_out(&mut self, f: &Func, carried: &[String]) -> Result<(), String> {
+        let entry = self.b.current_block().unwrap();
+        for _ in 0..PARAM_COUNT {
+            self.b.append_block_param(entry, types::I64);
+        }
+        let params: Vec<ClifValue> = self.b.block_params(entry).to_vec();
+        self.ctx = Some(params[CTX_SLOT]);
+        self.out = Some((params[OUT_SLOT], carried.to_vec()));
+        for (i, p) in f.params.iter().enumerate() {
+            let var = self.var(&p.name);
+            self.b.def_var(var, params[i]);
+        }
+        self.compile_block(&f.body)?;
+        if !self.terminated {
+            self.store_out();
+            let z = self.iconst(0);
+            self.b.ins().return_(&[z]);
+            self.terminated = true;
+        }
+        self.b.seal_all_blocks();
+        Ok(())
+    }
+
+    fn compile_block(&mut self, stmts: &[Stmt]) -> Result<(), String> {
+        for s in stmts {
+            self.compile_stmt(s)?;
+        }
+        Ok(())
+    }
+
+    fn switch(&mut self, blk: Block) {
+        self.b.switch_to_block(blk);
+        self.terminated = false;
+    }
+
+    fn compile_stmt(&mut self, s: &Stmt) -> Result<(), String> {
+        if self.terminated {
+            return Ok(());
+        }
+        match &s.kind {
+            StmtKind::Let { name, init, .. } => {
+                let v = match init {
+                    Some(e) => self.expr(e)?,
+                    None => self.iconst(0),
+                };
+                let var = self.var(name);
+                self.b.def_var(var, v);
+                Ok(())
+            }
+            StmtKind::Expr(e) => {
+                if let ExprKind::Assign(target, value) = &e.kind {
+                    let v = self.expr(value)?;
+                    if let ExprKind::Var(n) = &target.kind {
+                        let var = self.var(n);
+                        self.b.def_var(var, v);
+                        Ok(())
+                    } else {
+                        Err("unsupported assignment target in JIT".into())
+                    }
+                } else {
+                    self.expr(e)?;
+                    Ok(())
+                }
+            }
+            StmtKind::Return(e) => {
+                let v = match e {
+                    Some(e) => self.expr(e)?,
+                    None => self.iconst(0),
+                };
+                self.b.ins().return_(&[v]);
+                self.terminated = true;
+                Ok(())
+            }
+            StmtKind::Break | StmtKind::Continue => {
+                let (exit, header) = *self.loops.last().ok_or("break outside loop")?;
+                let target = if matches!(s.kind, StmtKind::Break) {
+                    exit
+                } else {
+                    header
+                };
+                self.b.ins().jump(target, &[]);
+                self.terminated = true;
+                Ok(())
+            }
+            StmtKind::If { cond, then, els } => {
+                let c = self.expr(cond)?;
+                let tb = self.b.create_block();
+                let eb = self.b.create_block();
+                let mb = self.b.create_block();
+                self.b.ins().brif(c, tb, &[], eb, &[]);
+                self.switch(tb);
+                self.compile_block(then)?;
+                if !self.terminated {
+                    self.b.ins().jump(mb, &[]);
+                }
+                self.switch(eb);
+                self.compile_block(els)?;
+                if !self.terminated {
+                    self.b.ins().jump(mb, &[]);
+                }
+                self.switch(mb);
+                Ok(())
+            }
+            StmtKind::While { cond, body } => {
+                let h = self.b.create_block();
+                let bb = self.b.create_block();
+                let x = self.b.create_block();
+                self.b.ins().jump(h, &[]);
+                self.switch(h);
+                let c = self.expr(cond)?;
+                self.b.ins().brif(c, bb, &[], x, &[]);
+                self.switch(bb);
+                self.loops.push((x, h));
+                self.compile_block(body)?;
+                self.loops.pop();
+                if !self.terminated {
+                    self.yield_poll();
+                    self.b.ins().jump(h, &[]);
+                }
+                self.switch(x);
