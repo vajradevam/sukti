@@ -1148,3 +1148,241 @@ impl<'a> Cx<'a> {
                     self.b.ins().jump(h, &[]);
                 }
                 self.switch(x);
+                Ok(())
+            }
+            StmtKind::For { var, iter, body } => {
+                let (from, to) = match &iter.kind {
+                    ExprKind::Range { from, to, .. } => (from, to),
+                    _ => return Err("JIT supports for only over integer ranges".into()),
+                };
+                let start = self.expr(from)?;
+                let end = self.expr(to)?;
+                let idx = self.var(var);
+                self.b.def_var(idx, start);
+                let h = self.b.create_block();
+                let bb = self.b.create_block();
+                let x = self.b.create_block();
+                self.b.ins().jump(h, &[]);
+                self.switch(h);
+                let cur = self.b.use_var(idx);
+                let cmp = self.cmp(IntCC::SignedLessThan, cur, end);
+                self.b.ins().brif(cmp, bb, &[], x, &[]);
+                self.switch(bb);
+                self.loops.push((x, h));
+                self.compile_block(body)?;
+                self.loops.pop();
+                if !self.terminated {
+                    self.yield_poll();
+                    let one = self.iconst(1);
+                    let next = self.b.ins().iadd(cur, one);
+                    self.b.def_var(idx, next);
+                    self.b.ins().jump(h, &[]);
+                }
+                self.switch(x);
+                Ok(())
+            }
+            _ => Err(format!("JIT unsupported statement: {}", stmt_tag(s))),
+        }
+    }
+
+    fn expr(&mut self, e: &Expr) -> Result<ClifValue, String> {
+        match &e.kind {
+            ExprKind::Lit(Literal::Int(i)) => {
+                let v: i64 = i
+                    .to_string()
+                    .parse()
+                    .map_err(|_| "integer too large for JIT".to_string())?;
+                Ok(self.iconst(v))
+            }
+            ExprKind::Var(n) => self
+                .vars
+                .get(n)
+                .map(|v| self.b.use_var(*v))
+                .ok_or_else(|| format!("unknown JIT variable {n}")),
+            ExprKind::Unary(UnOp::Neg, x) => {
+                let v = self.expr(x)?;
+                let min = self.iconst(i64::MIN);
+                let ov = self.cmp(IntCC::Equal, v, min);
+                self.guard(ov, REASON_OVERFLOW, "negation of i64::MIN");
+                let z = self.iconst(0);
+                Ok(self.b.ins().isub(z, v))
+            }
+            ExprKind::Unary(UnOp::Not, x) => {
+                let v = self.expr(x)?;
+                let z = self.iconst(0);
+                let c = self.cmp(IntCC::Equal, v, z);
+                Ok(c)
+            }
+            ExprKind::Binary(op, a, b) => {
+                let x = self.expr(a)?;
+                let y = self.expr(b)?;
+                match op {
+                    BinOp::Add => {
+                        self.range_guard(x, -ADD_SAFE, ADD_SAFE, "addition operand range");
+                        self.range_guard(y, -ADD_SAFE, ADD_SAFE, "addition operand range");
+                        Ok(self.b.ins().iadd(x, y))
+                    }
+                    BinOp::Sub => {
+                        self.range_guard(x, -ADD_SAFE, ADD_SAFE, "subtraction operand range");
+                        self.range_guard(y, -ADD_SAFE, ADD_SAFE, "subtraction operand range");
+                        Ok(self.b.ins().isub(x, y))
+                    }
+                    BinOp::Mul => {
+                        self.range_guard(x, -MUL_SAFE, MUL_SAFE, "multiplication operand range");
+                        self.range_guard(y, -MUL_SAFE, MUL_SAFE, "multiplication operand range");
+                        Ok(self.b.ins().imul(x, y))
+                    }
+                    BinOp::Div | BinOp::Mod => {
+                        let z = self.iconst(0);
+                        let zero = self.cmp(IntCC::Equal, y, z);
+                        let min = self.iconst(i64::MIN);
+                        let m1 = self.iconst(-1);
+                        let xmin = self.cmp(IntCC::Equal, x, min);
+                        let ym1 = self.cmp(IntCC::Equal, y, m1);
+                        let both = self.b.ins().band(xmin, ym1);
+                        let bad = self.b.ins().bor(zero, both);
+                        self.guard(bad, REASON_GUARD, "division by zero or i64::MIN / -1");
+                        if matches!(op, BinOp::Div) {
+                            Ok(self.b.ins().sdiv(x, y))
+                        } else {
+                            Ok(self.b.ins().srem(x, y))
+                        }
+                    }
+                    BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => {
+                        let cond = match op {
+                            BinOp::Eq => IntCC::Equal,
+                            BinOp::Ne => IntCC::NotEqual,
+                            BinOp::Lt => IntCC::SignedLessThan,
+                            BinOp::Le => IntCC::SignedLessThanOrEqual,
+                            BinOp::Gt => IntCC::SignedGreaterThan,
+                            BinOp::Ge => IntCC::SignedGreaterThanOrEqual,
+                            _ => unreachable!(),
+                        };
+                        Ok(self.cmp(cond, x, y))
+                    }
+                    _ => Err(format!("JIT unsupported operator {op:?}")),
+                }
+            }
+            ExprKind::Call { callee, args } => {
+                let name = match &callee.kind {
+                    ExprKind::Var(n) => n.clone(),
+                    _ => return Err("indirect call unsupported".into()),
+                };
+                let (fid, _) = *self
+                    .funcs
+                    .get(&name)
+                    .ok_or_else(|| format!("callee {name} not declared"))?;
+                let mut clif_args = Vec::with_capacity(PARAM_COUNT);
+                for a in args.iter() {
+                    if clif_args.len() >= SLOTS {
+                        return Err("call with too many arguments".into());
+                    }
+                    clif_args.push(self.expr(&a.expr)?);
+                }
+                while clif_args.len() < SLOTS {
+                    clif_args.push(self.iconst(0));
+                }
+                let fref: FuncRef = self.module.declare_func_in_func(fid, self.b.func);
+                clif_args.push(self.iconst(0)); // out (unused by plain calls)
+                clif_args.push(self.ctx());
+                let call = self.b.ins().call(fref, &clif_args);
+                Ok(self.b.inst_results(call)[0])
+            }
+            _ => Err(format!("JIT unsupported expression: {}", expr_tag(e))),
+        }
+    }
+}
+
+fn stmt_tag(s: &Stmt) -> &'static str {
+    match s.kind {
+        StmtKind::Expr(_) => "expr",
+        StmtKind::Let { .. } => "let",
+        StmtKind::Fn(_) => "fn",
+        StmtKind::Return(_) => "return",
+        StmtKind::If { .. } => "if",
+        StmtKind::While { .. } => "while",
+        StmtKind::For { .. } => "for",
+        StmtKind::Break => "break",
+        StmtKind::Continue => "continue",
+        StmtKind::Try { .. } => "try",
+        StmtKind::Raise(_) => "raise",
+        StmtKind::Class { .. } => "class",
+        StmtKind::Import { .. } => "import",
+        StmtKind::Export(_) => "export",
+        StmtKind::Sutra { .. } => "sutra",
+        StmtKind::Task { .. } => "task",
+        StmtKind::Channel { .. } => "channel",
+        StmtKind::Send { .. } => "send",
+        StmtKind::Receive { .. } => "receive",
+        StmtKind::Join { .. } => "join",
+        StmtKind::Assert(_) => "assert",
+    }
+}
+fn expr_tag(e: &Expr) -> &'static str {
+    match e.kind {
+        ExprKind::Lit(_) => "lit",
+        ExprKind::Var(_) => "var",
+        ExprKind::Template(_) => "template",
+        ExprKind::Unary(..) => "unary",
+        ExprKind::Binary(..) => "binary",
+        ExprKind::Assign(..) => "assign",
+        ExprKind::Call { .. } => "call",
+        ExprKind::Get { .. } => "get",
+        ExprKind::Set { .. } => "set",
+        ExprKind::Index { .. } => "index",
+        ExprKind::List(_) => "list",
+        ExprKind::Map(_) => "map",
+        ExprKind::Tuple(_) => "tuple",
+        ExprKind::Lambda { .. } => "lambda",
+        ExprKind::IfExpr { .. } => "ifexpr",
+        ExprKind::Block(_) => "block",
+        ExprKind::Range { .. } => "range",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deopt_site_ids_are_unique_and_ordered() {
+        let mut cx_sites = Vec::new();
+        let mut next = 1u64;
+        for _ in 0..3 {
+            cx_sites.push(DeoptSite {
+                id: next,
+                reason: "overflow",
+                detail: "test".into(),
+            });
+            next += 1;
+        }
+        assert_eq!(cx_sites.iter().map(|s| s.id).collect::<Vec<_>>(), [1, 2, 3]);
+    }
+
+    #[test]
+    fn cache_plan_roundtrip() {
+        let plan = CachedPlan {
+            key: 42,
+            name: "phiba".into(),
+            arity: 1,
+            sites: vec![DeoptOwnedSite {
+                id: 1,
+                reason: "overflow".into(),
+                detail: "addition operand range".into(),
+            }],
+        };
+        let bytes = serde_json::to_vec(&vec![plan.clone()]).unwrap();
+        let back: Vec<CachedPlan> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(back[0].key, plan.key);
+        assert_eq!(back[0].sites[0].id, 1);
+    }
+
+    #[test]
+    fn yield_flag_is_observable() {
+        clear_yield();
+        assert_eq!(yield_check(std::ptr::null_mut()), 0);
+        request_yield();
+        assert_eq!(yield_check(std::ptr::null_mut()), 1);
+        clear_yield();
+    }
+}
