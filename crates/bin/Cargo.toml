@@ -1,0 +1,15 @@
+[package]
+name = "sukti-bin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The Sūkti command-line binary (links runtime + Cranelift Tier 1)."
+
+[[bin]]
+name = "sukti"
+path = "src/main.rs"
+
+[dependencies]
+sukti = { path = "../sukti" }
+sukti-jit = { path = "../jit" }
+sukti-lsp = { path = "../lsp" }
