@@ -1,0 +1,16 @@
+[package]
+name = "sukti-lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Real LSP and DAP servers for the Sūkti language, speaking JSON-RPC over stdio."
+
+[lib]
+name = "sukti_lsp"
+path = "src/lib.rs"
+
+[dependencies]
+sukti = { path = "../sukti" }
+serde.workspace = true
+serde_json.workspace = true
+num-bigint.workspace = true
