@@ -1,0 +1,69 @@
+{
+  "name": "sukti",
+  "displayName": "Sūkti (sUkti)",
+  "version": "0.1.0",
+  "description": "Language support for Sūkti: syntax highlighting, snippets and a full VS Code LSP client.",
+  "license": "MIT",
+  "publisher": "sukti-lang",
+  "main": "./out/extension.js",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:sukti"
+  ],
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Sūkti",
+      "properties": {
+        "sukti.path": {
+          "type": "string",
+          "default": "sukti",
+          "description": "Path to the `sukti` executable used to launch the language server (`sukti lsp` over stdio)."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "sukti",
+        "aliases": [
+          "Sūkti",
+          "sUkti"
+        ],
+        "extensions": [
+          ".sukti",
+          ".sk"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "sukti",
+        "scopeName": "source.sukti",
+        "path": "./syntaxes/sukti.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "sukti",
+        "path": "./snippets/sukti.json"
+      }
+    ]
+  }
+}
