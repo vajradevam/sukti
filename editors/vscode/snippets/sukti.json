@@ -1,0 +1,49 @@
+{
+  "Hello": {
+    "prefix": "vada",
+    "body": [
+      "vada(\"${1:namaste, vishva!}\");"
+    ],
+    "description": "print"
+  },
+  "Function": {
+    "prefix": "kriyA",
+    "body": [
+      "kriyA ${1:nAma}(${2:pairAma}) {",
+      "\tphalam ${3:0};",
+      "}"
+    ],
+    "description": "function"
+  },
+  "Kāraka function": {
+    "prefix": "kArakakriyA",
+    "body": [
+      "kriyA ${1:nAma}(kartA ${2:ka}, karma ${3:kha}) {",
+      "\tphalam ${2:ka};",
+      "}"
+    ],
+    "description": "kāraka function"
+  },
+  "Sūtra": {
+    "prefix": "sUtra",
+    "body": [
+      "sUtra ${1:nAma}(${2:va}) {",
+      "\tphalam ${3:0};",
+      "}"
+    ],
+    "description": "sūtra rule"
+  },
+  "Try": {
+    "prefix": "yatna",
+    "body": [
+      "yatna {",
+      "\t${1:vada(\"…\");}",
+      "} doShe (I) {",
+      "\tvada(I.sandesha);",
+      "} ante {",
+      "\t${2:vada(\"cleanup\");}",
+      "}"
+    ],
+    "description": "exceptions"
+  }
+}

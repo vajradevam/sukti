@@ -1,0 +1,68 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Sūkti",
+  "scopeName": "source.sukti",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "name": "keyword.control.sukti",
+      "match": "\\b(?:astu|nitya|kriyA|phalam|yadi|anyathA\\ yadi|anyathA|yAvat|pratyekam|antaH|virama|anuvarta|satya|asatya|shUnya|cha|vA|na|yatna|doShe|ante|utthApaya|Anaya|prakAshaya|varga|svayam|mUla|vada|paTha|sUtra|apavAda|utsarga|tantu|bhavatu|vidhi|phala|jAti|kathaya|koSha)\\b"
+    },
+    {
+      "name": "entity.name.tag.karaka.sukti",
+      "match": "\\b(?:kartA|karma|karaNa|sampradAna|apAdAna|adhikaraNa|sambandha)\\b"
+    },
+    {
+      "name": "support.type.sukti",
+      "match": "\\b(?:pUrNA\\~nka|dashamalava|shabda|sUchI|kosha)\\b"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "name": "constant.numeric.sukti",
+      "match": "\\b(?:[0-9]+(?:\\.[0-9]+)?)"
+    },
+    {
+      "name": "punctuation.terminator.sukti",
+      "match": ";"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.sukti",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.sukti",
+          "begin": "/\\*",
+          "end": "\\*/"
+        },
+        {
+          "name": "comment.line.sanskrit.sukti",
+          "match": "//\\s*(?:TippaNI|Note):.*"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.sukti",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.sukti",
+          "match": "\\\\."
+        },
+        {
+          "name": "meta.interpolation.sukti",
+          "begin": "\\{",
+          "end": "\\}"
+        }
+      ]
+    }
+  }
+}
