@@ -1,0 +1,14 @@
+[package]
+name = "sukti-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WASM build of Sūkti's deterministic Tier-0 interpreter with a replay debugger for the playground."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sukti = { path = "../sukti" }
+sukti-sanskrit = { path = "../sanskrit" }
+serde_json.workspace = true
