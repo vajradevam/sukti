@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sūkti Playground — offline WASM runtime + debugger</title>
+<style>
+ :root{--bg:#10141c;--panel:#0c1016;--line:#2b3852;--fg:#e6e9ef;--dim:#9fb0cc;--accent:#82aaff}
+ *{box-sizing:border-box}
+ body{font:14px/1.5 system-ui,sans-serif;margin:0;background:var(--bg);color:var(--fg)}
+ header{padding:12px 18px;background:#182033;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+ h1{margin:0;font-size:19px} .sub{color:var(--dim);font-size:12px}
+ #status{font-size:12px;color:var(--dim)}
+ main{display:grid;grid-template-columns:minmax(360px,1fr) minmax(420px,1fr);gap:12px;padding:12px;height:calc(100vh - 56px)}
+ .col{display:flex;flex-direction:column;gap:8px;min-height:0}
+ .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+ button,select{padding:5px 9px;background:#24314a;color:var(--fg);border:1px solid #3b4d70;border-radius:6px;cursor:pointer;font:inherit}
+ button:hover{background:#30426a} button:disabled{opacity:.4;cursor:not-allowed}
+ .editor{display:flex;flex:1;min-height:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+ #gutter{overflow:hidden;padding:10px 6px;text-align:right;color:#5e6c86;font:13px/1.6 ui-monospace,monospace;user-select:none;min-width:52px}
+ #gutter div{cursor:pointer} #gutter div.bp{color:#ff7675;font-weight:bold}
+ #gutter div.cur{background:#24314a;color:#fff}
+ textarea{flex:1;border:0;outline:0;resize:none;padding:10px;background:var(--panel);color:var(--fg);font:13px/1.6 ui-monospace,monospace;white-space:pre;tab-size:2}
+ .panes{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,minmax(0,1fr));gap:8px;flex:1;min-height:0}
+ .pane{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden;min-height:0}
+ .pane h3{margin:0;padding:6px 9px;font-size:12px;background:#182033;color:var(--accent);border-bottom:1px solid var(--line)}
+ .pane pre{margin:0;padding:8px;overflow:auto;flex:1;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap}
+ .kw{color:#c792ea}.role{color:#82aaff}.num{color:#f78c6c}.str{color:#c3e88d}
+ @media(max-width:900px){main{grid-template-columns:1fr;height:auto}.panes{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+ <div><h1>Sūkti Playground — ITRANS</h1>
+  <div class="sub">Offline WASM Tier-0 runtime + replay debugger (breakpoints, stepping, stack, variables, heap, tasks, kāraka, sūtra, tier)</div></div>
+ <div id="status">loading WASM…</div>
+</header>
+<main>
+ <section class="col">
+  <div class="tools">
+   <button id="run">Run</button>
+   <button id="step">Step</button>
+   <button id="cont">Continue</button>
+   <button id="reset">Reset</button>
+   <select id="example">
+    <option value="namaste">namaste</option>
+    <option value="loop">Loop</option>
+    <option value="karaka">Kāraka</option>
+    <option value="sutra">Sūtra</option>
+   </select>
+   <button id="share">Share link</button>
+  </div>
+  <div class="editor"><div id="gutter"></div><textarea id="src" spellcheck="false"></textarea></div>
+ </section>
+ <section class="col">
+  <div class="panes">
+   <div class="pane"><h3>Output</h3><pre id="out"></pre></div>
+   <div class="pane"><h3>Diagnostics</h3><pre id="diag"></pre></div>
+   <div class="pane"><h3>Call stack / location</h3><pre id="stack"></pre></div>
+   <div class="pane"><h3>Variables</h3><pre id="vars"></pre></div>
+   <div class="pane"><h3>Heap</h3><pre id="heap"></pre></div>
+   <div class="pane"><h3>Tasks</h3><pre id="tasks"></pre></div>
+   <div class="pane"><h3>Kāraka</h3><pre id="karaka"></pre></div>
+   <div class="pane"><h3>Sūtra / Tier</h3><pre id="sutra"></pre></div>
+  </div>
+ </section>
+</main>
+<script>
+const EXAMPLES = {
+ namaste: 'vada("namaste, vizva!");',
+ loop: 'astu sa = 0;\nastu i = 0;\nyAvat (i < 10) { sa = sa + i; i = i + 1; }\nvada(sa);',
+ karaka: 'kriyA preshaya(kartA preshaka, karma patra) {\n    phalam preshaka + " -> " + patra;\n}\nvada(preshaya(karma: "patram", kartA: "rAma"));',
+ sutra: 'sUtra shulka(vastu) { phalam vastu * 10; }\napavAda sUtra shulka(vastu) yadi (vastu > 50) { phalam 0; }\nvada(shulka(10));'
+};
+const KW=['vada','paTha','astu','nitya','kriyA','phalam','yadi','anyathA','yAvat','pratyekam','antaH','virAma','anuvarta','satya','asatya','shUnya','yatna','doShe','ante','utthApaya','Anaya','prakAshaya','varga','svayam','mUla','sUtra','apavAda','utsarga','tantU','cha','vA','na'];
+const ROLES=['kartA','karma','karaNa','sampradAna','apAdAna','adhikaraNa','sambandha'];
+function highlight(s){let h=esc(s).replace(/("(?:[^"\\]|\\.)*")/g,'<span class="str">$1</span>');
+ h=h.replace(/([0-9]+)/g,'<span class="num">$1</span>');
+ for(const r of ROLES) h=h.replace(new RegExp(r,'g'),'<span class="role">'+r+'</span>');
+ for(const k of KW) h=h.replace(new RegExp(k,'g'),'<span class="kw">'+k+'</span>');
+ return h;}
+
+let wasm=null, mem=null, ex=null;
+const $=id=>document.getElementById(id);
+function setStatus(t){$('status').textContent=t;}
+async function loadWasm(){
+ try{
+  const res=await fetch('./sukti_wasm.wasm');
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const bytes=await res.arrayBuffer();
+  const mod=await WebAssembly.instantiate(bytes,{});
+  wasm=mod.instance; ex=wasm.exports; mem=ex.memory;
+  setStatus('WASM ready — Tier 0 replay debugger');
+  run();
+ }catch(e){ setStatus('WASM unavailable ('+e.message+') — static view only'); }
+}
+function bytesOf(s){return new TextEncoder().encode(s);}
+function readResult(){const len=ex.sukti_state_len();const ptr=ex.sukti_state_ptr();
+ return JSON.parse(new TextDecoder().decode(new Uint8Array(mem.buffer,ptr,len)));}
+function run(){
+ if(!ex){ staticView(); return; }
+ const src=$('src').value;
+ const b=bytesOf(src), p=ex.sukti_alloc(b.length);
+ new Uint8Array(mem.buffer,p,b.length).set(b);
+ ex.sukti_load(p,b.length);
+ ex.sukti_state(); renderState(readResult());
+}
+function renderState(s){
+ $('out').innerHTML=highlight(s.output||'(no output)');
+ $('diag').textContent=s.diagnostics||'(none)';
+ $('stack').textContent='line '+s.line+'  frame '+s.index+' / '+s.total+
+   (s.stack&&s.stack.length?'\n'+s.stack.map(x=>'  • '+x.scope).join('\n'):'\n  (no active frame)');
+ $('vars').textContent=(s.variables&&s.variables.length?s.variables.map(v=>v[0]+' = '+v[1]).join('\n'):'(no locals)');
+ $('heap').textContent='objects: '+s.heap.objects;
+ $('tasks').textContent=(s.tasks&&s.tasks.length?s.tasks.join('\n'):'(no tasks)');
+ $('karaka').textContent='Layer A: '+s.karaka.layer_a+'  Layer B: '+s.karaka.layer_b+
+   '\nroles: '+s.karaka.roles.join(' ');
+ $('sutra').textContent=(s.sutra&&s.sutra.length?s.sutra.join('\n'):'(no sūtra groups)')+
+   '\n\nTier: '+s.tier.mode+'\n'+s.tier.note;
+ renderGutter(s);
+}
+function staticView(){
+ $('out').innerHTML='<b>[static view]</b>\n'+highlight($('src').value)+'\n\nNative execution and the debugger need ./sukti_wasm.wasm (see the repository README).';
+}
+function renderGutter(s){
+ const lines=$('src').value.split('\n');
+ $('gutter').innerHTML=lines.map((_,i)=>{const n=i+1;const cls=[s.breakpoints.includes(n)?'bp':'',s.line===n?'cur':''].join(' ');
+  return '<div class="'+cls+'" data-line="'+n+'">'+n+'</div>';}).join('');
+ $('gutter').querySelectorAll('div').forEach(d=>d.onclick=()=>{
+  if(!ex)return; const n=+d.dataset.line; ex.sukti_set_breakpoint(n); ex.sukti_state(); renderState(readResult());
+ });
+}
+$('run').onclick=run;
+$('step').onclick=()=>{if(ex){ex.sukti_step();ex.sukti_state();renderState(readResult());}};
+$('cont').onclick=()=>{if(ex){ex.sukti_continue();ex.sukti_state();renderState(readResult());}};
+$('reset').onclick=()=>{if(ex){ex.sukti_reset();ex.sukti_state();renderState(readResult());}};
+$('example').onchange=e=>{$('src').value=EXAMPLES[e.target.value];run();};
+$('share').onclick=()=>{const c=btoa(unescape(encodeURIComponent($('src').value)));
+ navigator.clipboard.writeText(location.href.split('#')[0]+'#'+c);alert('Share link copied');};
+if(location.hash.length>1){try{$('src').value=decodeURIComponent(escape(atob(location.hash.slice(1))));}catch(e){}}
+else $('src').value=EXAMPLES.namaste;
+loadWasm();
+</script>
+</body>
+</html>
