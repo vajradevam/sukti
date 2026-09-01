@@ -1,0 +1,4 @@
+// namaste -- hello world with interpolation
+// expected: greet the world
+astu nAma = "vishva";
+vada("namaste, {nAma}!");
