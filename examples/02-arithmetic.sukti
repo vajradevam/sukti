@@ -1,0 +1,20 @@
+// Factorial, Fibonacci and GCD (big integers)
+kriyA phaika(na) {
+    yadi (na <= 1) { phalam 1; }
+    phalam na * phaika(na - 1);
+}
+kriyA phiba(na) {
+    yadi (na < 2) { phalam na; }
+    phalam phiba(na - 1) + phiba(na - 2);
+}
+kriyA gresa(a, ba) {
+    yAvat (ba != 0) {
+        astu ta = ba;
+        ba = a % ba;
+        a = ta;
+    }
+    phalam a;
+}
+vada(phaika(10));
+vada(phiba(15));
+vada(gresa(48, 18));
