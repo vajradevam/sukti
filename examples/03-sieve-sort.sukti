@@ -1,0 +1,28 @@
+// Sieve of Eratosthenes and bubble sort
+astu chihna = [];
+pratyekam AI antaH 0..40 { chihna.prakShepa(satya); }
+pratyekam pa antaH 2..7 {
+    yadi (chihna[pa]) {
+        astu ja = pa * pa;
+        yAvat (ja < 40) { chihna[ja] = asatya; ja = ja + pa; }
+    }
+}
+astu abhAjya = [];
+pratyekam ke antaH 2..40 { yadi (chihna[ke]) { abhAjya.prakShepa(ke); } }
+vada(abhAjya);
+
+astu sUchI = [5, 2, 9, 1, 7];
+astu e = 0;
+yAvat (e < sUchI.dairghya()) {
+    astu bI = e + 1;
+    yAvat (bI < sUchI.dairghya()) {
+        yadi (sUchI[e] > sUchI[bI]) {
+            astu ta = sUchI[e];
+            sUchI[e] = sUchI[bI];
+            sUchI[bI] = ta;
+        }
+        bI = bI + 1;
+    }
+    e = e + 1;
+}
+vada(sUchI);
