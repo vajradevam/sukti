@@ -1,0 +1,14 @@
+// Closures and higher-order functions
+kriyA guNaka(ga) {
+    phalam kriyA(na) { phalam na * ga; }
+}
+astu duganA = guNaka(2);
+astu tigunA = guNaka(3);
+vada(duganA(7));
+vada(tigunA(7));
+kriyA anvaya(pha, sU) {
+    astu ra = [];
+    pratyekam i antaH sU { ra.prakShepa(pha(i)); }
+    phalam ra;
+}
+vada(anvaya(duganA, 1..4));
