@@ -1,0 +1,10 @@
+// Exceptions with cleanup
+yatna {
+    vada("shurU");
+    utthApaya(doSha("kuchha galata huA"));
+    vada("yahAM nahIM AegA");
+} doShe (I) {
+    vada("pakaDaA: " + I.sandesha);
+} ante {
+    vada("saphAI huI");
+}
