@@ -1,0 +1,16 @@
+// Classes, single inheritance and super calls
+varga AkAra {
+    nAma = "ajnyAta"
+    nirmANa(na) { svayam.nAma = na; }
+    vivaraNa() { phalam "AkAra: " + svayam.nAma; }
+}
+varga chatuShkoNa : AkAra {
+    nirmANa(na, bhujA) {
+        mUla.nirmANa(na);
+        svayam.bhujA = bhujA;
+    }
+    kShetraphala() { phalam svayam.bhujA * svayam.bhujA; }
+}
+astu cha = chatuShkoNa("varga", 4);
+vada(cha.vivaraNa());
+vada(cha.kShetraphala());
