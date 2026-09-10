@@ -1,0 +1,16 @@
+// Karaka calls: Layer A (labels) and Layer B (vibhakti)
+kriyA preShaya(kartA preShaka, karma patra, karaNa mAdhyama, sampradAna grAhaka) {
+    phalam preShaka + " -> " + patra + " -> " + grAhaka + " (" + mAdhyama + ")";
+}
+vada(preShaya(kartA: "rAma", karma: "patra", karaNa: "DAka", sampradAna: "shyAma"));
+vada(preShaya(sampradAna: "shyAma", karma: "patra", kartA: "rAma", karaNa: "DAka"));
+// Layer B: singular a-stem endings resolve by karaka expectancy.
+// Instrumental/dative endings are unambiguous across genders, unlike the
+// syncretic neuter nominative/accusative "m" (which yields E0005 by design).
+astu rAmaH = "rAma";
+astu DAkena = "DAka";
+astu shyAmAya = "shyAma";
+kriyA bheja(kartA preShaka, karaNa mAdhyama, sampradAna grAhaka) {
+    phalam preShaka + " --" + mAdhyama + "-> " + grAhaka;
+}
+vada(bheja(rAmaH, DAkena, shyAmAya));
