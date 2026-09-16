@@ -1,0 +1,5 @@
+// Sutra rules: utsarga and apavada with --prakriya tracing
+sUtra shulka(vastu) { phalam vastu * 10; }
+apavAda sUtra shulka(vastu) yadi (vastu > 50) { phalam 0; }
+vada(shulka(10));
+vada(shulka(100));
