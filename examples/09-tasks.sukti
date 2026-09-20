@@ -1,0 +1,10 @@
+// Deterministic cooperative tasks and a message channel
+astu cha = su.chainala();
+tantu utpAdaka {
+    cha.preShaya("namaste");
+    cha.preShaya("vishva");
+}
+tantu upabhoktA {
+    vada(cha.prApta());
+    vada(cha.prApta());
+}
