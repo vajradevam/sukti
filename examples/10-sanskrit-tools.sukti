@@ -1,0 +1,6 @@
+// Sanskrit text tools (flagship saMskRRita module)
+vada(saMskRRita.rUpAntaraNa("namaste", "devanagari", "iast"));
+vada(saMskRRita.pratyAhAra("ach"));
+vada(saMskRRita.akSharANi("namaste"));
+vada(saMskRRita.mAtrA("namaste"));
+vada(saMskRRita.vibhakti("rAma", "a", "m", "sg", "nom"));
