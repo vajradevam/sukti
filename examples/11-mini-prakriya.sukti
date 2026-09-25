@@ -1,0 +1,9 @@
+// Mini-prakriya: educational subset of vowel sandhi, step by step
+// (clearly not a full Paninian derivational engine)
+astu pUrva = "a";
+astu para = "asti";
+vada("pUrva: " + pUrva);
+vada("para: " + para);
+astu phala = saMskRRita.sandhi(pUrva, para);
+vada("sandhi-phalam: " + phala[0]);
+vada("vichchheda-pratiphalam: " + saMskRRita.sandhivichchheda(phala[0])[0]);
