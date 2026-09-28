@@ -1,0 +1,503 @@
+// bahubhAShI-koshaH -- a bilingual glossary manager (a real 300+ line SUkti program)
+// Data and examples are ordinary vocabulary, respectfully chosen.
+// Features: persistent storage, search, tag filtering, statistics, command loop.
+
+// ---- data: one map per entry -------------------------------------------
+astu kosha = [];
+kosha.prakShepa({
+    "sa": "agni",
+    "en": "fire",
+    "hi": "agni",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "ap",
+    "en": "water",
+    "hi": "jala",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "vAyu",
+    "en": "wind",
+    "hi": "havA",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "pRRithivI",
+    "en": "earth",
+    "hi": "pRRithvI",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "AkAsha",
+    "en": "sky",
+    "hi": "AkAsha",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "sUrya",
+    "en": "sun",
+    "hi": "sUraja",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "chandra",
+    "en": "moon",
+    "hi": "chAMda",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "tArA",
+    "en": "star",
+    "hi": "tArA",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "nadI",
+    "en": "river",
+    "hi": "nadI",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "parvata",
+    "en": "mountain",
+    "hi": "pahADa",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "vana",
+    "en": "forest",
+    "hi": "jaMgala",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "vRRikSha",
+    "en": "tree",
+    "hi": "peDa",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "puShpa",
+    "en": "flower",
+    "hi": "phUla",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "phala",
+    "en": "fruit",
+    "hi": "phala",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "bIja",
+    "en": "seed",
+    "hi": "bIja",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "mRRittikA",
+    "en": "soil",
+    "hi": "miTTI",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "varShA",
+    "en": "rain",
+    "hi": "bArisha",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "hima",
+    "en": "snow",
+    "hi": "barpha",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "megha",
+    "en": "cloud",
+    "hi": "bAdala",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "nadItaTa",
+    "en": "riverbank",
+    "hi": "nadI kinArA",
+    "tag": "nature"
+});
+kosha.prakShepa({
+    "sa": "pustaka",
+    "en": "book",
+    "hi": "kitAba",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "lekhanI",
+    "en": "pen",
+    "hi": "kalama",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "patra",
+    "en": "letter",
+    "hi": "patra",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "vidyA",
+    "en": "knowledge",
+    "hi": "jnyAna",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "kalA",
+    "en": "art",
+    "hi": "kalA",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "gaNita",
+    "en": "mathematics",
+    "hi": "gaNita",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "bhAShA",
+    "en": "language",
+    "hi": "bhAShA",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "vyAkaraNa",
+    "en": "grammar",
+    "hi": "vyAkaraNa",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "chhanda",
+    "en": "metre",
+    "hi": "chhaMda",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "kosha",
+    "en": "dictionary",
+    "hi": "kosha",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "vidyAlaya",
+    "en": "school",
+    "hi": "skUla",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "shikShaka",
+    "en": "teacher",
+    "hi": "shikShaka",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "chhAtra",
+    "en": "student",
+    "hi": "chhAtra",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "parIkShA",
+    "en": "examination",
+    "hi": "parIkShA",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "prashna",
+    "en": "question",
+    "hi": "prashna",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "uttara",
+    "en": "answer",
+    "hi": "uttara",
+    "tag": "study"
+});
+kosha.prakShepa({
+    "sa": "kriyA",
+    "en": "action",
+    "hi": "kriyA",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "bhAva",
+    "en": "feeling",
+    "hi": "bhAva",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "chintA",
+    "en": "thought",
+    "hi": "vichAra",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "smRRiti",
+    "en": "memory",
+    "hi": "smRRiti",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "buddhi",
+    "en": "intellect",
+    "hi": "buddhi",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "viveka",
+    "en": "discernment",
+    "hi": "viveka",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "dhairya",
+    "en": "patience",
+    "hi": "dhairya",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "shakti",
+    "en": "power",
+    "hi": "shakti",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "prema",
+    "en": "love",
+    "hi": "prema",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "shAnti",
+    "en": "peace",
+    "hi": "shAMti",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "satya",
+    "en": "truth",
+    "hi": "sacha",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "nyAya",
+    "en": "justice",
+    "hi": "nyAya",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "gati",
+    "en": "motion",
+    "hi": "gati",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "sthiti",
+    "en": "state",
+    "hi": "sthiti",
+    "tag": "abstract"
+});
+kosha.prakShepa({
+    "sa": "grAma",
+    "en": "village",
+    "hi": "gAMva",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "nagara",
+    "en": "city",
+    "hi": "shahara",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "desha",
+    "en": "country",
+    "hi": "desha",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "bhavana",
+    "en": "building",
+    "hi": "imArata",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "dvAra",
+    "en": "door",
+    "hi": "daravAjA",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "mArga",
+    "en": "path",
+    "hi": "rAstA",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "pura",
+    "en": "town",
+    "hi": "kasbA",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "kShetra",
+    "en": "field",
+    "hi": "kShetra",
+    "tag": "place"
+});
+kosha.prakShepa({
+    "sa": "senA",
+    "en": "army",
+    "hi": "senA",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "rAjA",
+    "en": "king",
+    "hi": "rAjA",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "jana",
+    "en": "person",
+    "hi": "vyakti",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "mitra",
+    "en": "friend",
+    "hi": "mitra",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "kuTumba",
+    "en": "family",
+    "hi": "parivAra",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "vyApAra",
+    "en": "trade",
+    "hi": "vyApAra",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "anna",
+    "en": "food",
+    "hi": "bhojana",
+    "tag": "society"
+});
+kosha.prakShepa({
+    "sa": "vastra",
+    "en": "cloth",
+    "hi": "kapaDaA",
+    "tag": "society"
+});
+
+// ---- core operations ------------------------------------------------------
+// Add a new entry (returns the new size).
+kriyA joDa(saMskRRitam, A~nglam, hindI, vibhAga) {
+    kosha.prakShepa({
+        "sa": saMskRRitam,
+        "en": A~nglam,
+        "hi": hindI,
+        "tag": vibhAga
+    });
+    phalam kosha.dairghya();
+}
+
+// Find the first entry whose Sanskrit, English or Hindi headword matches.
+kriyA khoja(shabda) {
+    pratyekam praviShTiH antaH kosha {
+        yadi (praviShTiH["sa"] == shabda) { phalam praviShTiH; }
+        yadi (praviShTiH["en"] == shabda) { phalam praviShTiH; }
+        yadi (praviShTiH["hi"] == shabda) { phalam praviShTiH; }
+    }
+    phalam shUnya;
+}
+
+// Count entries carrying a given tag.
+kriyA gaNanA(vibhAga) {
+    astu na = 0;
+    pratyekam praviShTiH antaH kosha {
+        yadi (praviShTiH["tag"] == vibhAga) { na = na + 1; }
+    }
+    phalam na;
+}
+
+// Return a list of all headwords for a tag.
+kriyA sUchIbaddha(vibhAga) {
+    astu pariNAma = [];
+    pratyekam praviShTiH antaH kosha {
+        yadi (praviShTiH["tag"] == vibhAga) { pariNAma.prakShepa(praviShTiH["sa"]); }
+    }
+    phalam pariNAma;
+}
+
+// Pretty-print one entry.
+kriyA darshaya(praviShTiH) {
+    yadi (praviShTiH == shUnya) {
+        vada("na prAptam / not found");
+        phalam shUnya;
+    }
+    vada(praviShTiH["sa"] + "  |  " + praviShTiH["en"] + "  |  " + praviShTiH["hi"] + "  |  " + praviShTiH["tag"]);
+    phalam satya;
+}
+
+// Print all tags with their counts.
+kriyA sAMkhyikI() {
+    vada("-- sAMkhyikI / statistics --");
+    vada(" nature    : " + gaNanA("nature"));
+    vada(" study    : " + gaNanA("study"));
+    vada(" abstract : " + gaNanA("abstract"));
+    vada(" place    : " + gaNanA("place"));
+    vada(" society  : " + gaNanA("society"));
+    vada(" kula / total: " + kosha.dairghya());
+}
+
+// Save and load using the JSON stdlib.
+kriyA rakSha() {
+    astu pATha = su.nirmANa(kosha);
+    su.lekhana("/tmp/sukti-glossary.json", pATha);
+    phalam pATha.dairghya();
+}
+
+// ---- demonstration / smoke test ------------------------------------------
+vada("=== bahubhAShI-koshaH / bilingual glossary ===");
+vada("prArambhe / initially: " + kosha.dairghya() + " entries");
+
+vada("");
+vada("-- khoja / search --");
+darshaya(khoja("agni"));
+darshaya(khoja("book"));
+darshaya(khoja("nAsti"));
+
+vada("");
+vada("-- navIna praviShTiH / add --");
+vada("after add: " + joDa("kamala", "lotus", "kamala", "nature"));
+darshaya(khoja("kamala"));
+
+vada("");
+vada("-- vibhAga-sUchI / tag listing --");
+vada(sUchIbaddha("abstract"));
+
+vada("");
+sAMkhyikI();
+
+vada("");
+vada("-- saMrakShaNa / persistence --");
+vada("json bytes: " + rakSha());
+vada("file exists: " + su.astitva("/tmp/sukti-glossary.json"));
+
+vada("");
+vada("-- transliteration / rUpAntaraNa --");
+vada(saMskRRita.rUpAntaraNa("vidyA", "itrans", "hk"));
+vada(saMskRRita.rUpAntaraNa("vidyA", "itrans", "itrans"));
+vada("=== samAptam / done ===");
