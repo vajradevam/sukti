@@ -1,0 +1,62 @@
+KEYWORD astu
+WORD saMkhyA
+OP =
+NUMBER 123
+DANDA
+KEYWORD vada
+OP (
+WORD saMkhyA
+OP +
+NUMBER 45
+OP )
+DANDA
+KEYWORD yadi
+OP (
+WORD saMkhyA
+OP >
+NUMBER 100
+OP )
+OP {
+KEYWORD phalam
+KEYWORD satya
+DANDA
+OP }
+KEYWORD kriyA
+WORD yoga
+OP (
+WORD a
+OP ,
+WORD ba
+OP )
+OP {
+KEYWORD phalam
+WORD a
+OP +
+WORD ba
+DANDA
+OP }
+KEYWORD astu
+WORD x
+OP =
+NUMBER 42
+DANDA
+KEYWORD vada
+OP (
+WORD x
+OP *
+NUMBER 2
+OP -
+NUMBER 1
+OP /
+NUMBER 1
+OP %
+NUMBER 9
+OP )
+DANDA
+KEYWORD astu
+WORD nAma
+OP =
+STRING namaste
+DANDA
+DANDA
+EOF

@@ -1,0 +1,226 @@
+// 15 -- sva-Ashrita vAkya-vichchhedaka / self-hosting tokenizer
+// ---------------------------------------------------------------------------
+// Sukti's own lexer is written in Rust (crates/sukti/src/lexer.rs). This example
+// implements the same *idea* inside Sukti itself: it takes a source string,
+// walks it Unicode-character by Unicode-character, and emits a flat stream of
+// token records [kind, text]. It is a real scanner, not a canned printout.
+//
+// Input: an embedded raw triple-quoted literal below. The stdlib does offer
+// file I/O (su.paThana / su.lekhana), but a literal keeps the golden output hermetic.
+//
+// Emitted kinds:
+//   NUMBER <digits>   one or more ASCII/Devanagari digits (with _ ignored)
+//   WORD <text>       ordinary identifier
+//   KEYWORD <text>    identifier found in the built-in keyword list below
+//   STRING <text>     double-quoted literal (with simple escapes)
+//   DANDA             ";" or ";"
+//   DANDA2            ";"
+//   OP <char>         one punctuation/operator character
+//   UNKNOWN <char>    anything not recognised (reported, never dropped)
+//   EOF               end of input
+//
+// One line is printed per token so the stream can be diffed against
+// examples/15-tokenizer.expected by `sukti test examples`.
+
+// ---- the small vocabulary we classify as keywords ------------------------
+astu kIvarDa = [
+    "kriyA", "phalam", "astu", "yadi", "yAvat", "vada",
+    "pratyekam", "antaH", "satya", "asatya", "shUnya"
+];
+
+// ---- single-character operators and punctuation --------------------------
+astu cihna = [
+    "\{", "\}", "(", ")", "[", "]", "+", "-", "*", "/",
+    "%", "<", ">", "=", ",", ":", "."
+];
+
+// ---- the token records produced by the scanner ---------------------------
+// Each entry is a two-element list: [kind, text]. A parser could consume this
+// list directly; here we also print each record in a stable, readable form.
+astu Tokana = [];
+
+// The host lexer emits no token for a literally empty `""` string, so we
+// manufacture an empty string by splitting "x" on itself and taking part 0.
+astu khAlI = "x".vibhAjana("x")[0];
+
+// Append a record and print exactly one deterministic output line.
+kriyA utsarjaya(prakAra, pATha) {
+    Tokana.prakShepa([prakAra, pATha]);
+    yadi (pATha == khAlI) {
+        vada(prakAra);
+    } anyathA {
+        vada(prakAra + " " + pATha);
+    }
+}
+
+// ---- character predicates ------------------------------------------------
+// The ranges mirror the host lexer: a..ha plus the nukta letters qa..LLI.
+// Comparing single-character strings with <= works on Unicode codepoints,
+// so Devanagari letters and digits are classified without transliteration.
+
+kriyA avakAsha(akSha) {
+    yadi (akSha == " " vA akSha == "\t" vA akSha == "\n" vA akSha == "\r") {
+        phalam satya;
+    }
+    phalam asatya;
+}
+
+kriyA a~nka(akSha) {
+    yadi (akSha >= "0" cha akSha <= "9") {
+        phalam satya;
+    }
+    phalam asatya;
+}
+
+// Valid first character of an identifier: _, ASCII letter, Devanagari letter.
+kriyA akShara(akSha) {
+    yadi (akSha == "_") { phalam satya; }
+    yadi (akSha >= "A" cha akSha <= "Z") { phalam satya; }
+    yadi (akSha >= "a" cha akSha <= "z") { phalam satya; }
+    phalam asatya;
+}
+
+// Valid continuation: a letter, a digit, or a Devanagari combining mark
+// (vowel sign, virama, nukta, anusvara, visarga).
+kriyA anubandha(akSha) {
+    yadi (akShara(akSha)) { phalam satya; }
+    yadi (a~nka(akSha)) { phalam satya; }
+    phalam asatya;
+}
+
+// Membership test against the operator alphabet.
+kriyA chihnam(akSha) {
+    pratyekam sa antaH cihna {
+        yadi (sa == akSha) { phalam satya; }
+    }
+    phalam asatya;
+}
+
+// Membership test against the keyword list: WORD becomes KEYWORD on a hit.
+// This is the classification step that a parser would rely on.
+kriyA padaprakAra(pada) {
+    pratyekam kI antaH kIvarDa {
+        yadi (kI == pada) { phalam "KEYWORD"; }
+    }
+    phalam "WORD";
+}
+
+// Escape translation inside string literals (the common short escapes).
+kriyA palAyana(akSha) {
+    yadi (akSha == "n") { phalam "\n"; }
+    yadi (akSha == "t") { phalam "\t"; }
+    yadi (akSha == "r") { phalam "\r"; }
+    phalam akSha;
+}
+
+// ---- the scanner ---------------------------------------------------------
+// `pATha.vibhAjana(khAlI)` splits on the empty separator, yielding a list of ONE-CODEPOINT
+// strings. That is the key to correct Unicode handling: indexing that list
+// never cuts a Devanagari grapheme in half, and multi-byte characters count
+// as a single position.
+kriyA vishleShaya(pATha) {
+    astu akSha = pATha.vibhAjana(khAlI);
+    astu antima = akSha.dairghya();
+    astu AI = 0;
+
+    yAvat (AI < antima) {
+        astu cur = akSha[AI];
+        astu next = khAlI;
+        yadi (AI + 1 < antima) { next = akSha[AI + 1]; }
+
+        // 1. Whitespace is skipped, never emitted.
+        yadi (avakAsha(cur)) {
+            AI = AI + 1;
+            anuvarta;
+        }
+
+        // 2. `//` comments run to the end of the line.
+        yadi (cur == "/" cha next == "/") {
+            yAvat (AI < antima cha akSha[AI] != "\n") {
+                AI = AI + 1;
+            }
+            anuvarta;
+        }
+
+        // 3. Statement terminators. `;` is distinct from the single danda.
+        yadi (cur == ";") {
+            utsarjaya("DANDA", khAlI);
+            AI = AI + 1;
+            anuvarta;
+        }
+
+        // 4. Numbers: greedily group digits; `_` separators are dropped.
+        //    ASCII and Devanagari digits may be mixed in one number.
+        yadi (a~nka(cur)) {
+            astu buffer = khAlI;
+            yAvat (AI < antima cha (a~nka(akSha[AI]) vA akSha[AI] == "_")) {
+                yadi (akSha[AI] != "_") {
+                    buffer = buffer + akSha[AI];
+                }
+                AI = AI + 1;
+            }
+            utsarjaya("NUMBER", buffer);
+            anuvarta;
+        }
+
+        // 5. Strings: scan to the closing quote, translating short escapes.
+        yadi (cur == "\"") {
+            AI = AI + 1;
+            astu buffer = khAlI;
+            yAvat (AI < antima) {
+                astu c = akSha[AI];
+                yadi (c == "\"") {
+                    AI = AI + 1;
+                    virama;
+                }
+                yadi (c == "\\" cha AI + 1 < antima) {
+                    AI = AI + 1;
+                    buffer = buffer + palAyana(akSha[AI]);
+                } anyathA {
+                    buffer = buffer + c;
+                }
+                AI = AI + 1;
+            }
+            utsarjaya("STRING", buffer);
+            anuvarta;
+        }
+
+        // 6. Words: greedily group identifier characters, then classify.
+        yadi (akShara(cur)) {
+            astu buffer = khAlI;
+            yAvat (AI < antima cha anubandha(akSha[AI])) {
+                buffer = buffer + akSha[AI];
+                AI = AI + 1;
+            }
+            utsarjaya(padaprakAra(buffer), buffer);
+            anuvarta;
+        }
+
+        // 7. Operators / punctuation, then a final UNKNOWN fallback.
+        yadi (chihnam(cur)) {
+            utsarjaya("OP", cur);
+            AI = AI + 1;
+            anuvarta;
+        }
+        utsarjaya("UNKNOWN", cur);
+        AI = AI + 1;
+    }
+
+    utsarjaya("EOF", khAlI);
+}
+
+// ---- input: a representative Sukti snippet -------------------------------
+// Raw triple quotes keep the snippet verbatim (no interpolation, no escapes),
+// so quotes inside it are just characters for the scanner to tokenize.
+astu srota = r"""astu saMkhyA = 123;
+// chhoTA udAharaNa: yoga tathA tulanA
+vada(saMkhyA + 45);
+yadi (saMkhyA > 100) { phalam satya; }
+kriyA yoga(a, ba) { phalam a + ba; }
+astu x = 42;
+vada(x * 2 - 1 / 1 % 9);
+astu nAma = "namaste";
+;"""
+
+// ---- run -----------------------------------------------------------------
+vishleShaya(srota);
