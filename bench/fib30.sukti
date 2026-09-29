@@ -1,0 +1,2 @@
+kriyA phiba(na) { yadi (na < 2) { phalam na; } phalam phiba(na-1) + phiba(na-2); }
+vada(phiba(30));
