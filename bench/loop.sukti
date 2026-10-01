@@ -1,0 +1,7 @@
+kriyA yoga(na) {
+    astu sa = 0;
+    astu i = 0;
+    yAvat (i < na) { sa = sa + i; i = i + 1; }
+    phalam sa;
+}
+vada(yoga(200000));
