@@ -1,0 +1,5 @@
+varga gaNaka { na = 0 vRRiddhi() { svayam.na = svayam.na + 1; phalam svayam.na; } }
+astu ga = gaNaka();
+astu i = 0;
+yAvat (i < 20000) { ga.vRRiddhi(); i = i + 1; }
+vada(ga.na);
