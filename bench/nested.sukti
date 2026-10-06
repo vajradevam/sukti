@@ -1,0 +1,14 @@
+kriyA gaNanA(na) {
+    astu sa = 0;
+    astu i = 0;
+    yAvat (i < na) {
+        astu ja = 0;
+        yAvat (ja < 64) {
+            sa = sa + ((i * ja) % 7);
+            ja = ja + 1;
+        }
+        i = i + 1;
+    }
+    phalam sa;
+}
+vada(gaNanA(3000));
