@@ -1,0 +1,7 @@
+kriyA chhAlanI(na) {
+    astu chihna = [];
+    pratyekam AI antaH 0..na { chihna.prakShepa(satya); }
+    pratyekam pa antaH 2..71 { yadi (chihna[pa]) { astu ja = pa*pa; yAvat (ja < na) { chihna[ja] = asatya; ja = ja + pa; } } }
+    phalam chihna.dairghya();
+}
+vada(chhAlanI(5000));
