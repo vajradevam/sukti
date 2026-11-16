@@ -1,0 +1,36 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+      - name: Lexicon validation
+        run: python3 tools/check_lexicon.py
+      - name: Vidyut cross-check
+        run: python3 tools/vidyut_check.py
+      - name: Golden examples
+        run: cargo run -q -p sukti-bin -- test examples
+      - name: JIT differential
+        run: cargo test -p sukti-bin --test differential
+      - name: JIT tiered-engine features
+        run: cargo test -p sukti-bin --test jit_features
+      - name: Conformance suite (393 cases)
+        run: cargo test -p sukti --test conformance
+      - name: Diagnostic snapshots (67 snippets x 3 languages)
+        run: cargo test -p sukti --test snapshot_cases
+      - name: LSP / DAP protocol tests
+        run: cargo test -p sukti-lsp --test protocol
+      - name: WASM playground build + headless test
+        run: |
+          bash scripts/build-wasm.sh
+          cd playground && node headless-test.mjs
